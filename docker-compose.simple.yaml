@@ -1,25 +1,12 @@
 version: '3.8'
 
-networks:
-  coolify:
-    external: true
-
 services:
   supabase-mcp:
     image: silverstar3o7/supabase-mcp-server:latest
     container_name: supabase-mcp-server
     restart: unless-stopped
-    networks:
-      - coolify
-    labels:
-      # Traefik configuration for Coolify
-      - traefik.enable=true
-      - traefik.http.routers.supabase-mcp.rule=Host(`sb-mcp.bifrotek.com`)
-      - traefik.http.routers.supabase-mcp.entrypoints=http,https
-      - traefik.http.routers.supabase-mcp.tls.certresolver=letsencrypt
-      - traefik.http.services.supabase-mcp.loadbalancer.server.port=3333
-      - coolify.managed=true
-    # No ports section needed - Traefik handles routing
+    ports:
+      - "${MCP_PORT:-3333}:${MCP_PORT:-3333}"
     environment:
       # Required Supabase Configuration
       - SUPABASE_ACCESS_TOKEN=${SUPABASE_ACCESS_TOKEN}
@@ -34,13 +21,11 @@ services:
       - NODE_ENV=${NODE_ENV:-production}
       # Security: API Keys for authentication (highly recommended)
       - MCP_API_KEYS=${MCP_API_KEYS}
-      # Security: Stricter rate limiting to reduce bot traffic
-      - MCP_RATE_LIMIT_REQUESTS=${MCP_RATE_LIMIT_REQUESTS:-50}
-      - MCP_RATE_LIMIT_GENERAL=${MCP_RATE_LIMIT_GENERAL:-30}
-      # Security: CORS allowed origins (change from * to specific domains)
+      # Security: Rate limiting
+      - MCP_RATE_LIMIT_REQUESTS=${MCP_RATE_LIMIT_REQUESTS:-100}
+      - MCP_RATE_LIMIT_GENERAL=${MCP_RATE_LIMIT_GENERAL:-60}
+      # Security: CORS allowed origins
       - MCP_ALLOWED_ORIGINS=${MCP_ALLOWED_ORIGINS:-*}
-      # Logging: Reduce verbose connection logs
-      - NODE_LOG_LEVEL=${NODE_LOG_LEVEL:-warn}
     # Use HTTP server instead of STDIO
     command: ["npm", "start"]
     healthcheck:
@@ -60,7 +45,7 @@ services:
           cpus: '0.25'
     # Security: Run as non-root user
     user: "1001:1001"
-    # Logging configuration to reduce noise
+    # Logging configuration
     logging:
       driver: "json-file"
       options:

@@ -17,6 +17,7 @@ This is a **standalone, self-hostable Docker container** that wraps the official
 
 ### **🏗️ Deployment Benefits**
 - **🐳 One Docker container** - Deploy anywhere (Coolify, Railway, AWS, DigitalOcean)
+- **📦 Ready-to-use image** - Available on Docker Hub: `silverstar3o7/supabase-mcp-server`
 - **🔐 Built-in security** - API keys, rate limiting, CORS protection
 - **📊 Health monitoring** - Health checks and status endpoints
 - **⚙️ Environment-based config** - Easy customization via env vars
@@ -48,9 +49,17 @@ Use at your own risk. No warranty is provided.
 
 ## 🚀 **Deploy Your Standalone MCP Server**
 
-### **1️⃣ Quick Docker Start**
+### **1️⃣ Quick Docker Start (2 Options)**
 
-Deploy the complete multi-transport MCP server in minutes:
+**Option A: Pre-built Image (Fastest - No Building Required)**
+
+```bash
+# Download configuration files
+curl -O https://raw.githubusercontent.com/Silverstar187/supabase-mcp-docker/main/docker-compose.simple.yaml
+curl -O https://raw.githubusercontent.com/Silverstar187/supabase-mcp-docker/main/env.example
+```
+
+**Option B: Clone Repository (Full Control)**
 
 ```bash
 git clone https://github.com/Silverstar187/supabase-mcp-docker.git
@@ -77,6 +86,13 @@ MCP_RATE_LIMIT_REQUESTS=50
 ```
 
 ### **3️⃣ Launch Multi-Transport Server:**
+
+**Option A: Using Pre-built Image**
+```bash
+docker-compose -f docker-compose.simple.yaml up -d
+```
+
+**Option B: Build from Source**
 ```bash
 docker-compose up --build
 ```
