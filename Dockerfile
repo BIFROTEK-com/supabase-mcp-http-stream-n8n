@@ -11,7 +11,6 @@ RUN apk add --no-cache python3 make g++
 COPY package*.json ./
 COPY packages/mcp-server-supabase/package.json ./packages/mcp-server-supabase/
 COPY packages/mcp-utils/package.json ./packages/mcp-utils/
-COPY packages/mcp-server-postgrest/package.json ./packages/mcp-server-postgrest/
 
 # Install ALL dependencies (including dev-dependencies for build)
 RUN npm install --ignore-scripts
@@ -35,7 +34,6 @@ RUN apk add --no-cache python3 make g++
 COPY package*.json ./
 COPY packages/mcp-server-supabase/package.json ./packages/mcp-server-supabase/
 COPY packages/mcp-utils/package.json ./packages/mcp-utils/
-COPY packages/mcp-server-postgrest/package.json ./packages/mcp-server-postgrest/
 
 # Install only production dependencies
 RUN npm install --ignore-scripts --production
@@ -43,7 +41,6 @@ RUN npm install --ignore-scripts --production
 # Copy built files from builder stage
 COPY --from=builder /app/packages/mcp-server-supabase/dist ./packages/mcp-server-supabase/dist
 COPY --from=builder /app/packages/mcp-utils/dist ./packages/mcp-utils/dist
-COPY --from=builder /app/packages/mcp-server-postgrest/dist ./packages/mcp-server-postgrest/dist
 
 # Copy HTTP server and other necessary files
 COPY mcp-http-server.js ./
