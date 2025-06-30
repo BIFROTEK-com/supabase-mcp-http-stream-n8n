@@ -6,11 +6,10 @@ services:
     container_name: supabase-mcp-server
     restart: unless-stopped
     environment:
-      # Required: Supabase Personal Access Token
+      # Required Supabase Configuration
       - SUPABASE_ACCESS_TOKEN=${SUPABASE_ACCESS_TOKEN}
-      # Optional: Project Reference (recommended for security)
       - SUPABASE_PROJECT_REF=${SUPABASE_PROJECT_REF}
-      # Optional: Feature groups (comma-separated)
+      # Optional: Feature groups to enable
       - MCP_FEATURES=${MCP_FEATURES:-database,docs,development,functions}
       # Optional: Read-only mode (true/false)
       - MCP_READ_ONLY=${MCP_READ_ONLY:-true}
@@ -18,6 +17,13 @@ services:
       - MCP_PORT=${MCP_PORT:-3000}
       # Optional: Node environment
       - NODE_ENV=${NODE_ENV:-production}
+      # Security: API Keys for authentication (highly recommended)
+      - MCP_API_KEYS=${MCP_API_KEYS}
+      # Security: Rate limiting configuration
+      - MCP_RATE_LIMIT_REQUESTS=${MCP_RATE_LIMIT_REQUESTS:-100}
+      - MCP_RATE_LIMIT_GENERAL=${MCP_RATE_LIMIT_GENERAL:-60}
+      # Security: CORS allowed origins
+      - MCP_ALLOWED_ORIGINS=${MCP_ALLOWED_ORIGINS:-*}
     ports:
       - "${MCP_PORT:-3000}:3000"
     # Use HTTP server instead of STDIO

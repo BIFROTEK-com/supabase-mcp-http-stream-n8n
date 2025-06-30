@@ -3,13 +3,168 @@
 const express = require('express');
 const { spawn } = require('child_process');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
 
 const app = express();
 const port = process.env.MCP_PORT || 3000;
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+// Security: Basic hardening against script kiddies
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+        },
+    },
+    crossOriginEmbedderPolicy: false // Allow iframe embedding for testing
+}));
+
+// Rate limiting - prevents basic DDoS and abuse
+const createRateLimiter = (windowMs, max, message) => rateLimit({
+    windowMs,
+    max,
+    message: { error: message, retryAfter: Math.ceil(windowMs / 1000) + ' seconds' },
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: (req) => {
+        // Skip rate limiting for health checks
+        return req.path === '/health';
+    }
+});
+
+// Different rate limits for different endpoints
+const mcpLimiter = createRateLimiter(
+    15 * 60 * 1000, // 15 minutes
+    parseInt(process.env.MCP_RATE_LIMIT_REQUESTS || '100'), // 100 requests per 15min
+    'Too many MCP requests. This server is rate limited to prevent abuse.'
+);
+
+const generalLimiter = createRateLimiter(
+    60 * 1000, // 1 minute  
+    parseInt(process.env.MCP_RATE_LIMIT_GENERAL || '60'), // 60 requests per minute
+    'Too many requests. Please slow down.'
+);
+
+// Apply rate limiting
+app.use(generalLimiter);
+app.use('/mcp', mcpLimiter);
+
+// API Key Authentication (optional but recommended)
+function authenticateAPIKey(req, res, next) {
+    // Skip auth for health and status checks
+    if (req.path === '/health' || req.path === '/mcp/status') {
+        return next();
+    }
+    
+    // Check if API keys are configured
+    const validApiKeys = process.env.MCP_API_KEYS?.split(',').map(key => key.trim()).filter(Boolean) || [];
+    
+    if (validApiKeys.length === 0) {
+        // No API keys configured - log warning but allow access
+        console.warn('⚠️  WARNING: MCP_API_KEYS not configured. Server is open to public access!');
+        console.warn('   For production use, set MCP_API_KEYS="your-secret-key1,your-secret-key2"');
+        return next();
+    }
+    
+    // API keys are configured - require authentication
+    const providedKey = req.headers['x-api-key'] || req.headers['api-key'] || req.headers.authorization?.replace('Bearer ', '');
+    
+    if (!providedKey) {
+        return res.status(401).json({
+            error: 'Authentication required',
+            message: 'Include X-API-Key header or Authorization: Bearer <key>',
+            hint: 'Contact server administrator for API key'
+        });
+    }
+    
+    if (!validApiKeys.includes(providedKey)) {
+        console.warn(`🚨 Unauthorized access attempt from ${req.ip} with key: ${providedKey.substring(0, 8)}...`);
+        return res.status(403).json({
+            error: 'Invalid API key',
+            message: 'The provided API key is not valid'
+        });
+    }
+    
+    console.log(`✅ Authenticated request from ${req.ip}`);
+    next();
+}
+
+// Request validation for MCP endpoints
+function validateMCPRequest(req, res, next) {
+    if (req.method !== 'POST') {
+        return next();
+    }
+    
+    const body = req.body;
+    
+    // Basic JSON-RPC validation
+    if (!body || typeof body !== 'object') {
+        return res.status(400).json({
+            error: 'Invalid request',
+            message: 'Request body must be valid JSON'
+        });
+    }
+    
+    if (body.jsonrpc !== '2.0' || !body.method || !body.id) {
+        return res.status(400).json({
+            error: 'Invalid JSON-RPC request',
+            message: 'Request must follow JSON-RPC 2.0 specification'
+        });
+    }
+    
+    // Prevent potentially dangerous methods (if any)
+    const dangeroMethods = ['eval', 'exec', 'system', 'file/write', 'file/delete'];
+    if (dangeroMethods.some(dangerous => body.method.toLowerCase().includes(dangerous))) {
+        console.warn(`🚨 Blocked potentially dangerous method: ${body.method} from ${req.ip}`);
+        return res.status(403).json({
+            error: 'Method not allowed',
+            message: 'This method is not permitted for security reasons'
+        });
+    }
+    
+    next();
+}
+
+// CORS with security considerations
+app.use(cors({
+    origin: function(origin, callback) {
+        // Allow requests with no origin (mobile apps, curl, postman, etc.)
+        if (!origin) return callback(null, true);
+        
+        // Check if specific origins are configured
+        const allowedOrigins = process.env.MCP_ALLOWED_ORIGINS?.split(',').map(o => o.trim()) || ['*'];
+        
+        if (allowedOrigins.includes('*')) {
+            // Allow all origins if explicitly configured
+            return callback(null, true);
+        }
+        
+        if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+        
+        console.warn(`🚨 Blocked CORS request from unauthorized origin: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+    optionsSuccessStatus: 200
+}));
+
+// Middleware order matters - auth and validation after CORS
+app.use(express.json({ limit: '1mb' })); // Limit payload size
+app.use(authenticateAPIKey);
+app.use('/mcp', validateMCPRequest);
+
+// Security headers for responses
+app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    next();
+});
 
 // MCP Server Process
 let mcpProcess = null;

@@ -2,6 +2,20 @@
 
 > Connect your Supabase projects to Cursor, Claude, Windsurf, and other AI assistants.
 
+> **🤖 AI-Generated Code Notice:** This project was programmed with Claude 4.0 Sonnet and includes comprehensive security testing. While extensively tested, AI-generated code may contain errors or oversights. Please review thoroughly before production use.
+
+## ⚠️ **Disclaimer**
+
+This is AI-generated software. While we've implemented extensive security testing and best practices:
+
+- **Review the code** before deploying to production
+- **Test thoroughly** in your environment  
+- **Use API keys** in production (see Security section)
+- **Monitor logs** for unusual activity
+- **Keep dependencies updated**
+
+Use at your own risk. No warranty is provided.
+
 ![supabase-mcp-demo](https://github.com/user-attachments/assets/3fce101a-b7d4-482f-9182-0be70ed1ad56)
 
 The [Model Context Protocol](https://modelcontextprotocol.io/introduction) (MCP) standardizes how Large Language Models (LLMs) talk to external services like Supabase. It connects AI assistants directly with your Supabase project and allows them to perform tasks like managing tables, fetching config, and querying data. See the [full list of tools](#tools).
@@ -876,12 +890,103 @@ curl -X POST https://your-domain.com/mcp \
 
 ---
 
-## 🔐 **Security Notes**
+## 🧪 **Testing & Quality Assurance**
+
+This project includes comprehensive security tests to ensure production readiness:
+
+- **27 Security Tests** covering authentication, rate limiting, input validation
+- **Automated CI/CD** testing for all critical paths
+- **Coverage Reports** to ensure thorough testing
+- **Security Hardening** against common attack vectors
+
+```bash
+# Run HTTP server security tests
+npm run test:http
+
+# Run all workspace tests  
+npm test
+
+# Generate coverage reports
+npm run test:http:coverage
+```
+
+For detailed testing documentation, see [TESTING.md](./TESTING.md).
+
+## 🔐 **Security Features**
+
+### **Built-in Security Hardening**
+
+The MCP server includes enterprise-grade security features to prevent abuse:
+
+#### **🔑 API Key Authentication (Recommended)**
+```bash
+# Set API keys in environment variables
+MCP_API_KEYS="your-secret-key-1,your-secret-key-2,your-secret-key-3"
+
+# Client requests must include the key
+curl -X POST https://your-domain.com/mcp \
+  -H "X-API-Key: your-secret-key-1" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":"test","method":"tools/list","params":{}}'
+```
+
+#### **🛡️ Rate Limiting & DDoS Protection**
+```bash
+# Configure rate limits (optional)
+MCP_RATE_LIMIT_REQUESTS=100  # Max requests per 15min for /mcp endpoint
+MCP_RATE_LIMIT_GENERAL=60    # Max requests per minute for all endpoints
+```
+
+#### **🌐 CORS Security**
+```bash
+# Restrict to specific domains (recommended)
+MCP_ALLOWED_ORIGINS="https://app.yourdomain.com,https://admin.yourdomain.com"
+
+# Or allow all origins (not recommended for production)
+MCP_ALLOWED_ORIGINS="*"
+```
+
+#### **🔒 Additional Security Headers**
+- **Helmet.js**: Secure HTTP headers (XSS protection, CSRF, etc.)
+- **Content Security Policy**: Prevents code injection attacks
+- **Request Validation**: JSON-RPC format validation
+- **Payload Limits**: 1MB max request size
+- **Method Filtering**: Blocks potentially dangerous methods
+
+### **⚠️ Production Security Checklist**
+
+```bash
+# 1. Set strong API keys
+MCP_API_KEYS="$(openssl rand -hex 32),$(openssl rand -hex 32)"
+
+# 2. Restrict CORS origins
+MCP_ALLOWED_ORIGINS="https://yourdomain.com"
+
+# 3. Configure rate limiting
+MCP_RATE_LIMIT_REQUESTS=50   # Conservative limit
+MCP_RATE_LIMIT_GENERAL=30
+
+# 4. Enable read-only mode
+MCP_READ_ONLY=true
+
+# 5. Use HTTPS (via Coolify/Traefik)
+# 6. Monitor logs for suspicious activity
+```
+
+### **🚨 Security Warnings**
+
+The server will log security events:
+- ⚠️  **No API keys configured** - Server runs in open mode
+- 🚨 **Unauthorized access attempts** - Invalid API keys
+- 🚨 **Rate limiting triggered** - Too many requests
+- 🚨 **Blocked dangerous methods** - Potential attack attempts
+- 🚨 **CORS violations** - Unauthorized origin access
+
+### **Legacy Security Notes**
 
 - **Access Token**: Keep your Supabase access token secure
-- **Read-Only Mode**: Enabled by default to prevent accidental data modification
+- **Read-Only Mode**: Enabled by default to prevent accidental data modification  
 - **RLS**: Row Level Security is enforced on all database operations
-- **CORS**: Configured for cross-origin requests (HTTP/SSE only)
 
 ---
 

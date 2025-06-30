@@ -40,6 +40,12 @@ SUPABASE_PROJECT_REF=your_project_reference_id
 MCP_FEATURES=database,docs,development,functions
 MCP_READ_ONLY=true
 MCP_PORT=3000
+
+# Security (Highly Recommended for Production)
+MCP_API_KEYS=your-secret-api-key-1,your-secret-api-key-2
+MCP_RATE_LIMIT_REQUESTS=50
+MCP_RATE_LIMIT_GENERAL=30
+MCP_ALLOWED_ORIGINS=https://yourdomain.com,https://app.yourdomain.com
 ```
 
 ### 3. Configure Domain & Port
@@ -209,6 +215,91 @@ curl -X POST https://your-domain.com/mcp \
     }
   }'
 ```
+
+---
+
+## 🔐 **Production Security Hardening**
+
+This MCP server includes built-in security features to prevent abuse and attacks:
+
+### **🔑 API Key Authentication**
+
+**Why:** Prevents unauthorized access and abuse by script kiddies.
+
+```bash
+# Generate strong API keys
+MCP_API_KEYS="$(openssl rand -hex 32),$(openssl rand -hex 32)"
+```
+
+**Usage in clients:**
+```bash
+# Using X-API-Key header
+curl -X POST https://your-domain.com/mcp \
+  -H "X-API-Key: your-secret-api-key-1" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":"test","method":"tools/list","params":{}}'
+
+# Or using Authorization header
+curl -X POST https://your-domain.com/mcp \
+  -H "Authorization: Bearer your-secret-api-key-1" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":"test","method":"tools/list","params":{}}'
+```
+
+### **🛡️ Rate Limiting**
+
+**Why:** Prevents DDoS attacks and resource abuse.
+
+```bash
+# Conservative production settings
+MCP_RATE_LIMIT_REQUESTS=50   # Max 50 requests per 15 minutes for /mcp
+MCP_RATE_LIMIT_GENERAL=30    # Max 30 requests per minute for all endpoints
+```
+
+### **🌐 CORS Protection**
+
+**Why:** Prevents unauthorized websites from accessing your server.
+
+```bash
+# Restrict to your domains only
+MCP_ALLOWED_ORIGINS="https://yourdomain.com,https://app.yourdomain.com"
+
+# For development (not recommended for production)
+MCP_ALLOWED_ORIGINS="*"
+```
+
+### **📋 Security Checklist**
+
+Before going live:
+
+1. ✅ **Set API Keys**: Configure `MCP_API_KEYS` with strong random keys
+2. ✅ **Restrict CORS**: Set `MCP_ALLOWED_ORIGINS` to your specific domains
+3. ✅ **Enable Rate Limiting**: Set conservative limits for `MCP_RATE_LIMIT_*`
+4. ✅ **Use HTTPS**: Ensure Coolify uses SSL certificates
+5. ✅ **Monitor Logs**: Check for security warnings in Coolify logs
+6. ✅ **Read-Only Mode**: Keep `MCP_READ_ONLY=true` unless writes are needed
+
+### **🚨 Security Monitoring**
+
+The server logs security events:
+
+```bash
+# In Coolify Application Logs, watch for:
+⚠️  WARNING: MCP_API_KEYS not configured. Server is open to public access!
+🚨 Unauthorized access attempt from 192.168.1.100 with key: 12345678...
+🚨 Rate limit exceeded for IP: 203.0.113.5
+🚨 Blocked CORS request from unauthorized origin: https://malicious-site.com
+🚨 Blocked potentially dangerous method: eval from 203.0.113.5
+```
+
+### **🔄 For Coolify Users**
+
+The security features work seamlessly with Coolify's Traefik proxy:
+
+- **SSL/TLS**: Automatic HTTPS via Traefik
+- **Load Balancing**: Built-in with Coolify
+- **Health Checks**: Uses `/health` endpoint
+- **Log Aggregation**: View all logs in Coolify dashboard
 
 ---
 
