@@ -42,49 +42,302 @@ Optional configuration:
 - `MCP_READ_ONLY` - Enable read-only mode (default: `true`)
 - `NODE_ENV` - Node environment (default: `production`)
 
+## Deployment Examples
+
 ### Deploy to Coolify
 
-1. **Add this repository to Coolify**
-2. **Set environment variables** in Coolify dashboard
-3. **Build settings:**
-   - Build Command: `npm run build`
-   - Start Command: `node packages/mcp-server-supabase/dist/transports/stdio.js --project-ref=$SUPABASE_PROJECT_REF --read-only --features=$MCP_FEATURES`
-   - Port: `3000` (for health checks)
+**Step 1: Create Application in Coolify**
+1. Login to your Coolify dashboard
+2. Go to "Projects" → "New" → "Public Repository"
+3. Enter repository URL: `https://github.com/Silverstar187/supabase-mcp-docker.git`
+4. Select branch: `main`
+5. Choose "Dockerfile" as build pack
 
-### Integration with AI Platforms
+**Step 2: Configure Environment Variables**
+In Coolify dashboard, add these environment variables:
+```bash
+SUPABASE_ACCESS_TOKEN=sbp_1234567890abcdef... # Your Personal Access Token
+SUPABASE_PROJECT_REF=abcdefghijklmnop        # Your Project Reference
+MCP_FEATURES=database,docs,development,functions
+MCP_READ_ONLY=true
+NODE_ENV=production
+```
 
-The MCP server communicates via STDIO, making it perfect for integration with AI platforms like Pipecat Cloud:
+**Step 3: Deploy Settings**
+- **Build Command:** `npm run build`
+- **Start Command:** `node packages/mcp-server-supabase/dist/transports/stdio.js --project-ref=$SUPABASE_PROJECT_REF --read-only --features=$MCP_FEATURES`
+- **Port:** `3000` (for health checks)
+- **Deploy:** Click "Deploy" button
 
+**Step 4: Get Server URL**
+After deployment, note your server URL: `https://your-app.coolify.domain.com`
+
+### Integration with n8n
+
+**Option 1: Execute Command Node**
+```json
+{
+  "nodes": [
+    {
+      "parameters": {
+        "command": "docker run --rm -i -e SUPABASE_ACCESS_TOKEN='{{ $env.SUPABASE_TOKEN }}' -e SUPABASE_PROJECT_REF='{{ $env.PROJECT_REF }}' your-coolify-image node packages/mcp-server-supabase/dist/transports/stdio.js --project-ref={{ $env.PROJECT_REF }} --read-only --features=database,docs",
+        "additionalFields": {
+          "stdin": "{{ $json.mcpRequest }}"
+        }
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "position": [380, 240],
+      "name": "Supabase MCP"
+    }
+  ]
+}
+```
+
+**Option 2: HTTP Request Node (if using HTTP transport)**
+```json
+{
+  "parameters": {
+    "url": "https://your-mcp-server.coolify.domain.com/mcp",
+    "options": {
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "tools/call",
+        "params": {
+          "name": "execute_sql",
+          "arguments": {
+            "sql": "SELECT * FROM users LIMIT 10"
+          }
+        }
+      }
+    }
+  },
+  "type": "n8n-nodes-base.httpRequest",
+  "name": "Query Supabase"
+}
+```
+
+**Example Workflow: Sync Data**
+```json
+{
+  "name": "Supabase Data Sync",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.start",
+      "position": [240, 300],
+      "name": "Start"
+    },
+    {
+      "parameters": {
+        "command": "echo '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"list_tables\"}}' | docker run --rm -i -e SUPABASE_ACCESS_TOKEN='{{ $env.SUPABASE_TOKEN }}' your-mcp-image node packages/mcp-server-supabase/dist/transports/stdio.js --project-ref={{ $env.PROJECT_REF }} --read-only"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "position": [380, 300],
+      "name": "Get Tables"
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Get Tables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
+```
+
+### Integration with Pipecat
+
+**Basic Pipecat Integration**
 ```python
 import subprocess
 import json
+import asyncio
+from pipecat.pipeline.pipeline import Pipeline
+from pipecat.services.elevenlabs import ElevenLabsTTSService
+from pipecat.services.openai import OpenAILLMService
 
-# Start MCP server process
-mcp_process = subprocess.Popen([
-    'node', 'packages/mcp-server-supabase/dist/transports/stdio.js',
-    '--project-ref=your_project_ref',
-    '--read-only',
-    '--features=database,docs,development,functions'
-], 
-stdin=subprocess.PIPE, 
-stdout=subprocess.PIPE,
-env={'SUPABASE_ACCESS_TOKEN': 'your_token'}
-)
+class SupabaseMCPService:
+    def __init__(self, project_ref: str, access_token: str):
+        self.project_ref = project_ref
+        self.access_token = access_token
+        self.process = None
+        
+    async def start(self):
+        """Start the MCP server process"""
+        self.process = subprocess.Popen([
+            'node', 
+            'packages/mcp-server-supabase/dist/transports/stdio.js',
+            f'--project-ref={self.project_ref}',
+            '--read-only',
+            '--features=database,docs,development,functions'
+        ], 
+        stdin=subprocess.PIPE, 
+        stdout=subprocess.PIPE, 
+        stderr=subprocess.PIPE,
+        env={'SUPABASE_ACCESS_TOKEN': self.access_token}
+        )
+        
+    async def call_tool(self, tool_name: str, arguments: dict = None) -> dict:
+        """Call a Supabase MCP tool"""
+        request = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/call",
+            "params": {
+                "name": tool_name,
+                "arguments": arguments or {}
+            }
+        }
+        
+        # Send request
+        request_json = json.dumps(request) + '\n'
+        self.process.stdin.write(request_json.encode())
+        self.process.stdin.flush()
+        
+        # Read response
+        response_line = self.process.stdout.readline()
+        return json.loads(response_line.decode())
+    
+    async def stop(self):
+        """Stop the MCP server process"""
+        if self.process:
+            self.process.terminate()
+            self.process.wait()
 
-# Send MCP request
-request = {
-    "jsonrpc": "2.0",
-    "id": 1,
-    "method": "tools/list",
-    "params": {}
-}
+# Pipecat Pipeline with Supabase MCP
+async def main():
+    # Initialize services
+    llm = OpenAILLMService(api_key="your-openai-key")
+    tts = ElevenLabsTTSService(api_key="your-elevenlabs-key")
+    supabase_mcp = SupabaseMCPService(
+        project_ref="your_project_ref",
+        access_token="your_supabase_token"
+    )
+    
+    # Start MCP server
+    await supabase_mcp.start()
+    
+    # Create pipeline
+    pipeline = Pipeline([
+        llm,
+        supabase_mcp,  # Add as a service in your pipeline
+        tts
+    ])
+    
+    # Example: Query database through voice
+    async def handle_voice_query(query: str):
+        # Use LLM to convert natural language to SQL
+        sql_query = await llm.process(f"Convert to SQL: {query}")
+        
+        # Execute SQL via MCP
+        result = await supabase_mcp.call_tool("execute_sql", {
+            "sql": sql_query
+        })
+        
+        # Convert result to speech
+        await tts.process(f"Here are your results: {result}")
+    
+    # Run pipeline
+    try:
+        await pipeline.run()
+    finally:
+        await supabase_mcp.stop()
 
-mcp_process.stdin.write(json.dumps(request).encode() + b'\n')
-mcp_process.stdin.flush()
+if __name__ == "__main__":
+    asyncio.run(main())
+```
 
-# Read response
-response = mcp_process.stdout.readline()
-print(json.loads(response.decode()))
+**Advanced Pipecat Example: Voice-Controlled Database Assistant**
+```python
+from pipecat.vad import SileroVADAnalyzer
+from pipecat.pipeline.runner import PipelineRunner
+from pipecat.pipeline.task import PipelineTask
+from pipecat.frames.frames import TextFrame, AudioRawFrame
+from pipecat.services.cartesia import CartesiaTTSService
+from pipecat.services.deepgram import DeepgramSTTService
+
+class VoiceDatabaseAssistant(PipelineTask):
+    def __init__(self):
+        super().__init__()
+        self.supabase_mcp = SupabaseMCPService(
+            project_ref=os.getenv("SUPABASE_PROJECT_REF"),
+            access_token=os.getenv("SUPABASE_ACCESS_TOKEN")
+        )
+        
+    async def process_frame(self, frame):
+        if isinstance(frame, TextFrame):
+            # Process voice commands
+            text = frame.text.lower()
+            
+            if "show tables" in text:
+                result = await self.supabase_mcp.call_tool("list_tables")
+                tables = [table["name"] for table in result.get("result", [])]
+                response = f"Available tables: {', '.join(tables)}"
+                
+            elif "count users" in text:
+                result = await self.supabase_mcp.call_tool("execute_sql", {
+                    "sql": "SELECT COUNT(*) as total FROM users"
+                })
+                count = result["result"][0]["total"]
+                response = f"Total users: {count}"
+                
+            elif "search docs" in text and "about" in text:
+                topic = text.split("about")[-1].strip()
+                result = await self.supabase_mcp.call_tool("search_docs", {
+                    "query": topic
+                })
+                response = f"Documentation found: {result.get('result', 'No results')}"
+                
+            else:
+                response = "I can help you with: show tables, count users, or search docs about a topic"
+            
+            # Send response back through pipeline
+            await self.push_frame(TextFrame(response))
+
+# Complete pipeline setup
+async def run_voice_assistant():
+    stt = DeepgramSTTService(api_key="your-deepgram-key")
+    llm = OpenAILLMService(api_key="your-openai-key")
+    tts = CartesiaTTSService(api_key="your-cartesia-key")
+    vad = SileroVADAnalyzer()
+    assistant = VoiceDatabaseAssistant()
+    
+    # Pipeline: Audio -> STT -> Assistant -> LLM -> TTS -> Audio
+    pipeline = Pipeline([
+        vad,           # Voice activity detection
+        stt,           # Speech to text
+        assistant,     # Our database assistant
+        llm,           # Language model for responses
+        tts            # Text to speech
+    ])
+    
+    # Run the pipeline
+    runner = PipelineRunner()
+    await runner.run(pipeline)
+
+if __name__ == "__main__":
+    asyncio.run(run_voice_assistant())
+```
+
+**Environment Setup for Pipecat**
+```bash
+# .env file for Pipecat project
+SUPABASE_ACCESS_TOKEN=sbp_your_token_here
+SUPABASE_PROJECT_REF=your_project_ref_here
+OPENAI_API_KEY=your_openai_key
+ELEVENLABS_API_KEY=your_elevenlabs_key
+DEEPGRAM_API_KEY=your_deepgram_key
 ```
 
 ## Prerequisites
