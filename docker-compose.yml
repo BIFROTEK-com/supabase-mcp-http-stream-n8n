@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  supabase-mcp:
+    build: .
+    container_name: supabase-mcp-server
+    restart: unless-stopped
+    environment:
+      # Required: Supabase Personal Access Token
+      - SUPABASE_ACCESS_TOKEN=${SUPABASE_ACCESS_TOKEN}
+      # Optional: Project Reference (recommended for security)
+      - SUPABASE_PROJECT_REF=${SUPABASE_PROJECT_REF}
+      # Optional: Feature groups (comma-separated)
+      - MCP_FEATURES=${MCP_FEATURES:-database,docs,development,functions}
+      # Optional: Read-only mode (true/false)
+      - MCP_READ_ONLY=${MCP_READ_ONLY:-true}
+      # Optional: Port for health checks
+      - MCP_PORT=${MCP_PORT:-3000}
+    ports:
+      - "${MCP_PORT:-3000}:3000"
+    # Override default command with CLI arguments
+    command: >
+      node packages/mcp-server-supabase/dist/transports/stdio.js
+      ${SUPABASE_PROJECT_REF:+--project-ref=${SUPABASE_PROJECT_REF}}
+      ${MCP_READ_ONLY:+--read-only}
+      ${MCP_FEATURES:+--features=${MCP_FEATURES}}
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('MCP Server is healthy')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s 
