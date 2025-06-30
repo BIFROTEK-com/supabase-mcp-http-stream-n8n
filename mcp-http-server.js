@@ -317,6 +317,120 @@ async function sendMCPRequest(request, sessionId = null) {
 
 // Routes
 
+// Landing page with live status dashboard  
+app.get('/', (req, res) => {
+    const hasApiKeys = !!(process.env.MCP_API_KEYS?.split(',').filter(Boolean).length);
+    const rateLimitMcp = process.env.MCP_RATE_LIMIT_REQUESTS || '100';
+    const rateLimitGeneral = process.env.MCP_RATE_LIMIT_GENERAL || '60';
+    const allowedOrigins = process.env.MCP_ALLOWED_ORIGINS || '*';
+    const features = process.env.MCP_FEATURES || 'database,docs,development,functions';
+    const readOnly = process.env.MCP_READ_ONLY === 'true';
+    
+    // Security status calculation
+    const securityFeatures = {
+        'api_keys': hasApiKeys,
+        'rate_limiting': true,
+        'cors_protection': allowedOrigins !== '*',
+        'security_headers': true,
+        'request_validation': true
+    };
+    
+    const securityScore = Object.values(securityFeatures).filter(Boolean).length;
+    const maxSecurityScore = Object.keys(securityFeatures).length;
+    
+    res.setHeader('Content-Type', 'application/json');
+    res.json({
+        service: '🐳 Supabase MCP Server',
+        description: 'Multi-transport Model Context Protocol server for Supabase',
+        version: '1.0.0',
+        
+        // 🚦 Live status indicators
+        status: {
+            http_server: '🟢 online',
+            mcp_backend: mcpReady ? '🟢 ready' : '🟡 initializing',
+            supabase_connection: mcpReady ? '🟢 connected' : '🔴 disconnected',
+            overall: mcpReady ? '🟢 fully operational' : '🟡 starting up',
+            timestamp: new Date().toISOString()
+        },
+        
+        // 🔄 Multi-transport support
+        transports: {
+            'streamable_http': '🚀 POST /mcp (recommended - Pipecat compatible)',
+            'server_sent_events': '🌊 POST /mcp with Accept: text/event-stream (n8n)',
+            'json_rpc_http': '📡 POST /mcp (standard JSON-RPC 2.0)'
+        },
+        
+        // 📍 Available endpoints
+        endpoints: {
+            'api_dashboard': '📖 GET / (this page)',
+            'health_check': '❤️ GET /health',
+            'mcp_status': '📊 GET /mcp/status', 
+            'mcp_api': '🔌 POST /mcp',
+            'tools_legacy': '🛠️ POST /tools (legacy)'
+        },
+        
+        // 🔒 Security dashboard
+        security: {
+            overall_status: securityScore >= 4 ? '🔒 secure' : securityScore >= 2 ? '🟡 basic protection' : '🔴 vulnerable',
+            security_score: `${securityScore}/${maxSecurityScore}`,
+            features: {
+                '🔑 API Authentication': hasApiKeys ? '🟢 enabled' : '🔴 DISABLED (open access!)',
+                '⏱️ Rate Limiting': `🟢 enabled (${rateLimitMcp}/15min, ${rateLimitGeneral}/1min)`,
+                '🌐 CORS Protection': allowedOrigins !== '*' ? '🟢 restricted origins' : '🟡 permissive (*)',
+                '🛡️ Security Headers': '🟢 helmet.js active',
+                '✅ Input Validation': '🟢 JSON-RPC validation'
+            }
+        },
+        
+        // ⚙️ Configuration info
+        configuration: {
+            'supabase_features': features.split(','),
+            'read_only_mode': readOnly ? '🔒 enabled (safe)' : '🔓 disabled (full access)',
+            'environment': process.env.NODE_ENV || 'development',
+            'port': port
+        },
+        
+        // 📝 Quick start examples
+        examples: {
+            'list_available_tools': {
+                method: 'POST',
+                url: '/mcp',
+                headers: hasApiKeys 
+                    ? { 'X-API-Key': 'your-api-key', 'Content-Type': 'application/json' } 
+                    : { 'Content-Type': 'application/json' },
+                body: { jsonrpc: '2.0', id: 1, method: 'tools/list' }
+            },
+            'health_check': {
+                method: 'GET', 
+                url: '/health',
+                auth_required: false,
+                expected_response: { status: 'ok', mcpReady: true }
+            }
+        },
+        
+        // 🔗 Useful links
+        links: {
+            'documentation': 'https://github.com/Silverstar187/supabase-mcp-docker',
+            'mcp_specification': 'https://modelcontextprotocol.io',
+            'supabase_platform': 'https://supabase.com'
+        },
+        
+        // ⚠️ Warnings and recommendations
+        warnings: [
+            ...(hasApiKeys ? [] : [
+                '⚠️ SECURITY WARNING: No API keys configured!',
+                '💡 Set MCP_API_KEYS environment variable for production'
+            ]),
+            ...(allowedOrigins === '*' ? [
+                '⚠️ CORS is permissive - consider restricting origins for production'
+            ] : []),
+            ...(!readOnly ? [
+                '⚠️ Read-only mode disabled - server has full write access to Supabase'
+            ] : [])
+        ].filter(Boolean)
+    });
+});
+
 // Health check
 app.get('/health', (req, res) => {
     res.json({ 
