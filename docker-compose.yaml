@@ -1,4 +1,4 @@
-version: '3.8'
+
 
 networks:
   coolify:
@@ -14,7 +14,7 @@ services:
     labels:
       # Traefik configuration for Coolify
       - traefik.enable=true
-      - traefik.http.routers.supabase-mcp.rule=Host(`sb-mcp.bifrotek.com`)
+      - traefik.http.routers.supabase-mcp.rule=Host(`your-domain.com`) # CHANGE THIS to your actual domain
       - traefik.http.routers.supabase-mcp.entrypoints=http,https
       - traefik.http.routers.supabase-mcp.tls.certresolver=letsencrypt
       - traefik.http.services.supabase-mcp.loadbalancer.server.port=3333

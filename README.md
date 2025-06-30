@@ -130,7 +130,7 @@ curl http://localhost:3333/health
 
 - `MCP_FEATURES` - Comma-separated feature groups (default: `database,docs,development,functions`)
 - `MCP_READ_ONLY` - Enable read-only mode (default: `true`)
-- `MCP_PORT` - HTTP server port (default: `3000`)
+- `MCP_PORT` - HTTP server port (default: `3333`)
 - `NODE_ENV` - Node environment (default: `production`)
 
 **Security configuration (Highly Recommended for Production):**
@@ -139,6 +139,8 @@ curl http://localhost:3333/health
 - `MCP_RATE_LIMIT_REQUESTS` - Max requests per 15 minutes for `/mcp` endpoint (default: `100`)
 - `MCP_RATE_LIMIT_GENERAL` - Max requests per minute for all endpoints (default: `60`)
 - `MCP_ALLOWED_ORIGINS` - Comma-separated allowed CORS origins (default: `"*"`, set to specific domains for security)
+
+
 
 ## Deployment Examples
 
@@ -164,7 +166,7 @@ SUPABASE_PROJECT_REF=abcdefghijklmnop        # Your Project Reference
 ```bash
 MCP_FEATURES=database,docs,development,functions
 MCP_READ_ONLY=true
-MCP_PORT=3000
+MCP_PORT=3333
 NODE_ENV=production
 ```
 
@@ -179,12 +181,13 @@ MCP_RATE_LIMIT_GENERAL=30
 
 # CORS (restrict to your domains)
 MCP_ALLOWED_ORIGINS="https://yourdomain.com,https://app.yourdomain.com"
+
 ```
 
 **Step 3: Deploy Settings**
 - **Build Command:** `npm run build`
 - **Start Command:** `node packages/mcp-server-supabase/dist/transports/stdio.js --project-ref=$SUPABASE_PROJECT_REF --read-only --features=$MCP_FEATURES`
-- **Port:** `3000` (for health checks)
+- **Port:** `3333` (for health checks)
 - **Deploy:** Click "Deploy" button
 
 **Step 4: Get Server URL**
@@ -205,7 +208,7 @@ Configure MCP Client node:
   "nodes": [
     {
       "parameters": {
-        "endpoint": "https://sb-mcp.bifrotek.com/mcp",
+        "endpoint": "https://your-domain.com/mcp",
         "protocol": "sse",
         "method": "tools/call",
         "tool": "execute_sql",
@@ -225,7 +228,7 @@ Configure MCP Client node:
 ```json
 {
   "parameters": {
-    "url": "https://sb-mcp.bifrotek.com/mcp",
+            "url": "https://your-domain.com/mcp",
     "method": "POST",
     "options": {
       "headers": {
@@ -402,17 +405,17 @@ For cloud deployments where subprocess isn't available:
 import requests
 
 # Health check
-response = requests.get("https://sb-mcp.bifrotek.com/health")
+response = requests.get("https://your-domain.com/health")
 print(response.json())
 
 # Execute SQL
-response = requests.post("https://sb-mcp.bifrotek.com/sql", json={
+response = requests.post("https://your-domain.com/sql", json={
     "sql": "SELECT count(*) FROM todos;"
 })
 print(response.json())
 
 # List available tools
-response = requests.get("https://sb-mcp.bifrotek.com/tools")
+response = requests.get("https://your-domain.com/tools")
 print(response.json())
 ```
 

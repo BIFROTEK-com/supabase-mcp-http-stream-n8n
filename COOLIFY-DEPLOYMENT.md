@@ -60,6 +60,7 @@ MCP_API_KEYS=your-secret-api-key-1,your-secret-api-key-2
 MCP_RATE_LIMIT_REQUESTS=50
 MCP_RATE_LIMIT_GENERAL=30
 MCP_ALLOWED_ORIGINS=https://yourdomain.com,https://app.yourdomain.com
+
 ```
 
 ### 3. Configure Domain
@@ -88,9 +89,11 @@ services:
       - coolify
     labels:
       - traefik.enable=true
-      - traefik.http.routers.supabase-mcp.rule=Host(`your-domain.com`)
+      - traefik.http.routers.supabase-mcp.rule=Host(`your-actual-domain.com`) # Replace with your domain!
       - traefik.http.services.supabase-mcp.loadbalancer.server.port=3333
 ```
+
+**⚠️ WICHTIG:** Ersetzen Sie `your-domain.com` in der docker-compose.yaml mit Ihrer echten Domain!
 
 ### Container Starts But Not Accessible
 
