@@ -60,7 +60,7 @@ USER mcp
 
 # Health check endpoint - simpler version
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:' + (process.env.MCP_PORT || 3333) + '/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))" || exit 1
+  CMD node -e "require('http').get('http://localhost:' + (process.env.MCP_PORT || 3333) + '/ping', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))" || exit 1
 
 # Default command - HTTP server for multi-transport support
 CMD ["node", "mcp-http-server.js"] 

@@ -433,11 +433,16 @@ app.get('/', (req, res) => {
 
 // Health check
 app.get('/health', (req, res) => {
-    res.json({ 
+    res.status(200).json({ 
         status: 'ok',
         mcpReady: mcpReady,
         timestamp: new Date().toISOString()
     });
+});
+
+// Simple ping endpoint for load balancers
+app.get('/ping', (req, res) => {
+    res.status(200).send('pong');
 });
 
 // Debug endpoint for troubleshooting

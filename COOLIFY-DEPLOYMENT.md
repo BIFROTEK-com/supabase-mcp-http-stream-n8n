@@ -2,6 +2,20 @@
 
 This guide explains how to deploy the Supabase MCP Server on Coolify with **multi-transport support**.
 
+## 🚨 **Important: Traefik Proxy Configuration**
+
+**Coolify uses Traefik as a reverse proxy.** If you see "no available server" errors, it means Traefik can't route traffic to your container. This deployment configuration includes the required **Traefik labels** to fix this issue.
+
+**What happens:**
+```
+Internet → Traefik (Port 80/443) → Your Container (Port 3333)
+```
+
+**Key Configuration:**
+- Container runs on internal port `3333` (no port mapping needed)
+- Traefik routes external traffic to your domain → container port `3333`
+- SSL certificates handled automatically by Traefik + Let's Encrypt
+
 ## 🔄 Supported Transport Protocols
 
 Your deployed MCP server will support:
@@ -39,7 +53,7 @@ SUPABASE_PROJECT_REF=your_project_reference_id
 # Optional (with defaults)
 MCP_FEATURES=database,docs,development,functions
 MCP_READ_ONLY=true
-MCP_PORT=3000
+MCP_PORT=3333
 
 # Security (Highly Recommended for Production)
 MCP_API_KEYS=your-secret-api-key-1,your-secret-api-key-2
@@ -48,14 +62,48 @@ MCP_RATE_LIMIT_GENERAL=30
 MCP_ALLOWED_ORIGINS=https://yourdomain.com,https://app.yourdomain.com
 ```
 
-### 3. Configure Domain & Port
+### 3. Configure Domain
 
-- **Port**: Set to `3000` for HTTP health checks
 - **Domain**: Configure your custom domain (e.g., `sb-mcp.yourdomain.com`)
+- **Port**: Not needed! Traefik handles all routing (container runs on internal port 3333)
+- **SSL**: Automatically handled by Traefik + Let's Encrypt
 
 ### 4. Deploy
 
 Click **"Deploy"** and wait for the build to complete.
+
+---
+
+## 🔧 **Troubleshooting**
+
+### "No Available Server" Error
+
+**Cause:** Traefik proxy can't reach your container
+
+**Solution:** Check docker-compose.yaml contains:
+```yaml
+services:
+  supabase-mcp:
+    networks:
+      - coolify
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.supabase-mcp.rule=Host(`your-domain.com`)
+      - traefik.http.services.supabase-mcp.loadbalancer.server.port=3333
+```
+
+### Container Starts But Not Accessible
+
+1. **Check Traefik Dashboard**: http://your-coolify-server:8080
+2. **Verify Container Network**: Container must be in `coolify` network
+3. **Check Domain DNS**: Domain must point to your Coolify server
+4. **Test Internal**: `docker exec container-name curl http://localhost:3333/health`
+
+### SSL Certificate Issues
+
+- **Wait 5-10 minutes** for Let's Encrypt certificate generation
+- **Check domain DNS** points to your server
+- **Verify Traefik logs**: `docker logs coolify-proxy`
 
 ---
 

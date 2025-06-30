@@ -1,10 +1,25 @@
 version: '3.8'
 
+networks:
+  coolify:
+    external: true
+
 services:
   supabase-mcp:
     build: .
     container_name: supabase-mcp-server
     restart: unless-stopped
+    networks:
+      - coolify
+    labels:
+      # Traefik configuration for Coolify
+      - traefik.enable=true
+      - traefik.http.routers.supabase-mcp.rule=Host(`sb-mcp.bifrotek.com`)
+      - traefik.http.routers.supabase-mcp.entrypoints=http,https
+      - traefik.http.routers.supabase-mcp.tls.certresolver=letsencrypt
+      - traefik.http.services.supabase-mcp.loadbalancer.server.port=3333
+      - coolify.managed=true
+    # No ports section needed - Traefik handles routing
     environment:
       # Required Supabase Configuration
       - SUPABASE_ACCESS_TOKEN=${SUPABASE_ACCESS_TOKEN}
@@ -19,18 +34,35 @@ services:
       - NODE_ENV=${NODE_ENV:-production}
       # Security: API Keys for authentication (highly recommended)
       - MCP_API_KEYS=${MCP_API_KEYS}
-      # Security: Rate limiting configuration
-      - MCP_RATE_LIMIT_REQUESTS=${MCP_RATE_LIMIT_REQUESTS:-100}
-      - MCP_RATE_LIMIT_GENERAL=${MCP_RATE_LIMIT_GENERAL:-60}
-      # Security: CORS allowed origins
+      # Security: Stricter rate limiting to reduce bot traffic
+      - MCP_RATE_LIMIT_REQUESTS=${MCP_RATE_LIMIT_REQUESTS:-50}
+      - MCP_RATE_LIMIT_GENERAL=${MCP_RATE_LIMIT_GENERAL:-30}
+      # Security: CORS allowed origins (change from * to specific domains)
       - MCP_ALLOWED_ORIGINS=${MCP_ALLOWED_ORIGINS:-*}
-    ports:
-      - "${MCP_PORT:-3333}:${MCP_PORT:-3333}"
+      # Logging: Reduce verbose connection logs
+      - NODE_LOG_LEVEL=${NODE_LOG_LEVEL:-warn}
     # Use HTTP server instead of STDIO
     command: ["npm", "start"]
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:${MCP_PORT:-3333}/health", "||", "exit", "1"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:${MCP_PORT:-3333}/ping", "||", "exit", "1"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s 
+      start_period: 60s
+    # Resource limits to prevent abuse
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    # Security: Run as non-root user
+    user: "1001:1001"
+    # Logging configuration to reduce noise
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3" 
