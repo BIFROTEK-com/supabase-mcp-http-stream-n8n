@@ -6,6 +6,87 @@
 
 The [Model Context Protocol](https://modelcontextprotocol.io/introduction) (MCP) standardizes how Large Language Models (LLMs) talk to external services like Supabase. It connects AI assistants directly with your Supabase project and allows them to perform tasks like managing tables, fetching config, and querying data. See the [full list of tools](#tools).
 
+## Docker Deployment
+
+This repository includes production-ready Docker configuration for hosting the Supabase MCP server.
+
+### Quick Start with Docker
+
+1. **Clone and build:**
+   ```bash
+   git clone https://github.com/Silverstar187/supabase-mcp-docker.git
+   cd supabase-mcp-docker
+   ```
+
+2. **Set up environment variables:**
+   ```bash
+   cp env.example .env
+   # Edit .env with your Supabase credentials
+   ```
+
+3. **Run with Docker Compose:**
+   ```bash
+   docker-compose up --build
+   ```
+
+### Environment Variables
+
+Required configuration:
+
+- `SUPABASE_ACCESS_TOKEN` - Your Supabase Personal Access Token ([Get it here](https://supabase.com/dashboard/account/tokens))
+- `SUPABASE_PROJECT_REF` - Your Supabase Project ID (found in Project Settings → General)
+
+Optional configuration:
+
+- `MCP_FEATURES` - Comma-separated feature groups (default: `database,docs,development,functions`)
+- `MCP_READ_ONLY` - Enable read-only mode (default: `true`)
+- `NODE_ENV` - Node environment (default: `production`)
+
+### Deploy to Coolify
+
+1. **Add this repository to Coolify**
+2. **Set environment variables** in Coolify dashboard
+3. **Build settings:**
+   - Build Command: `npm run build`
+   - Start Command: `node packages/mcp-server-supabase/dist/transports/stdio.js --project-ref=$SUPABASE_PROJECT_REF --read-only --features=$MCP_FEATURES`
+   - Port: `3000` (for health checks)
+
+### Integration with AI Platforms
+
+The MCP server communicates via STDIO, making it perfect for integration with AI platforms like Pipecat Cloud:
+
+```python
+import subprocess
+import json
+
+# Start MCP server process
+mcp_process = subprocess.Popen([
+    'node', 'packages/mcp-server-supabase/dist/transports/stdio.js',
+    '--project-ref=your_project_ref',
+    '--read-only',
+    '--features=database,docs,development,functions'
+], 
+stdin=subprocess.PIPE, 
+stdout=subprocess.PIPE,
+env={'SUPABASE_ACCESS_TOKEN': 'your_token'}
+)
+
+# Send MCP request
+request = {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "tools/list",
+    "params": {}
+}
+
+mcp_process.stdin.write(json.dumps(request).encode() + b'\n')
+mcp_process.stdin.flush()
+
+# Read response
+response = mcp_process.stdout.readline()
+print(json.loads(response.decode()))
+```
+
 ## Prerequisites
 
 You will need Node.js installed on your machine. You can check this by running:
