@@ -1,233 +1,228 @@
 # Coolify Deployment Guide
 
-Complete step-by-step guide to deploy the Supabase MCP Server on Coolify.
+This guide explains how to deploy the Supabase MCP Server on Coolify with **multi-transport support**.
+
+## 🔄 Supported Transport Protocols
+
+Your deployed MCP server will support:
+
+1. **✨ Streamable HTTP** (MCP 2025 Standard) - For modern integrations like Pipecat Cloud
+2. **📡 SSE** (Server-Sent Events) - For n8n MCP Client integration  
+3. **💻 STDIO** - For desktop applications (Cursor, Windsurf, Claude Desktop)
 
 ## Prerequisites
 
-Before starting, ensure you have:
-- A Coolify instance running
-- A Supabase account with a project
-- Git repository access: `https://github.com/Silverstar187/supabase-mcp-docker`
+1. A Coolify instance (self-hosted or cloud)
+2. A Supabase project with:
+   - Project Reference ID (found in Settings > General)
+   - Access Token (create in Settings > Access Tokens)
 
-## Step 1: Sources Configuration
+## Deployment Steps
 
-### 1.1 Add Git Source (if not already configured)
-1. Navigate to **Sources** in your Coolify dashboard
-2. Click **"+ New"** or **"Add Source"**
-3. Select **"GitHub"** or **"Git"**
-4. Configure your Git connection:
-   - **Name:** `github-silverstar187`
-   - **URL:** `https://github.com`
-   - **Username:** Your GitHub username
-   - **Token:** Your GitHub Personal Access Token
-5. Click **"Validate & Save"**
+### 1. Create New Resource
 
-### 1.2 Verify Source Connection
-- Ensure the source shows as **"Connected"** with a green status
-- Test the connection by clicking **"Test Connection"**
+1. Go to your Coolify dashboard
+2. Click **"+ New"** → **"Public Repository"**
+3. Enter repository URL: `https://github.com/Silverstar187/supabase-mcp-docker`
+4. Select **"Docker Compose"** as Build Pack
+5. Set **Docker Compose Location** to: `docker-compose.yaml`
 
-## Step 2: Projects Setup
+### 2. Configure Environment Variables
 
-### 2.1 Create New Project (Option A)
-1. Go to **"Projects"** in the main navigation
-2. Click **"+ New Project"**
-3. Configure project settings:
-   - **Name:** `supabase-mcp-server`
-   - **Description:** `MCP Server for Supabase integration with AI assistants`
-   - **Environment:** `production` (or your preferred environment)
-4. Click **"Create Project"**
+Add these environment variables in Coolify:
 
-### 2.2 Use Existing Project (Option B)
-1. Navigate to **"Projects"**
-2. Select an existing project from the list
-3. Proceed to the next step
-
-## Step 3: Resources - Add Public Repository
-
-### 3.1 Create New Resource
-1. Inside your selected project, click **"+ New Resource"**
-2. Select **"Public Repository"**
-
-### 3.2 Repository Configuration
-Fill in the repository details:
-
-**Basic Settings:**
-- **Repository URL:** `https://github.com/Silverstar187/supabase-mcp-docker`
-- **Branch:** `main`
-- **Name:** `supabase-mcp-server`
-
-**Build Configuration:**
-- **Build Pack:** `Docker Compose`
-- **Docker Compose Location:** `docker-compose.yaml`
-- **Base Directory:** `/` (root)
-
-### 3.3 Environment Variables
-Configure the following environment variables:
-
-**Required Variables:**
 ```bash
-SUPABASE_ACCESS_TOKEN=sbp_your_personal_access_token_here
-SUPABASE_PROJECT_REF=your_project_reference_id_here
-```
+# Required
+SUPABASE_ACCESS_TOKEN=your_access_token_here
+SUPABASE_PROJECT_REF=your_project_ref_here
 
-**Optional Variables (with defaults):**
-```bash
+# Optional Configuration  
 MCP_FEATURES=database,docs,development,functions
 MCP_READ_ONLY=true
-NODE_ENV=production
 MCP_PORT=3000
 ```
 
-### 3.4 Advanced Settings
+### 3. Configure Domain & Networking
 
-**Ports Configuration:**
-- **Port:** `3000`
-- **Exposed:** `Yes`
-- **Protocol:** `HTTP`
+1. **Generate Domain** in Coolify (e.g., `mcp-server.your-coolify-domain.com`)
+2. **Set Port** to `3000` for health checks
+3. **Enable HTTPS** (recommended for production)
 
-**Health Check (Optional):**
-- **Path:** `/health` (if implemented)
-- **Port:** `3000`
-- **Interval:** `30s`
+### 4. Deploy
 
-**Resource Allocation:**
-- **Memory:** `512MB` (minimum)
-- **CPU:** `0.5` cores (minimum)
+Click **"Deploy"** and wait for the build to complete.
 
-## Step 4: Deployment Process
+## 🔌 Integration Endpoints
 
-### 4.1 Initial Deployment
-1. Click **"Deploy"** button
-2. Monitor the build logs in real-time
-3. Wait for successful deployment status
+Once deployed, your MCP server provides these endpoints:
 
-### 4.2 Verify Deployment
-1. Check the **"Logs"** tab for any errors
-2. Verify the application is running:
-   - Status should show **"Running"**
-   - Health checks passing (if configured)
-3. Note the assigned URL: `https://your-app.your-coolify-domain.com`
+| Endpoint | Method | Purpose | Client Type |
+|----------|--------|---------|-------------|
+| `POST /mcp` | POST | **Streamable HTTP** (new standard) | Pipecat Cloud, modern clients |
+| `POST /mcp` | POST | **SSE** (with `Accept: text/event-stream`) | n8n MCP Client |
+| `GET /mcp/status` | GET | Server discovery & capabilities | Any HTTP client |
+| `GET /health` | GET | Health check | Monitoring tools |
 
-## Step 5: Getting Your Supabase Credentials
+## 🤖 Pipecat Cloud Integration (Streamable HTTP)
 
-### 5.1 Personal Access Token
-1. Go to [Supabase Dashboard](https://supabase.com/dashboard)
-2. Navigate to **Account Settings** → **Access Tokens**
-3. Click **"Create new token"**
-4. Name it: `Coolify MCP Server`
-5. Copy the token (starts with `sbp_`)
+### Python Code Example
 
-### 5.2 Project Reference ID
-1. Open your Supabase project
-2. Go to **Settings** → **General**
-3. Copy the **Project ID** (this is your project reference)
-
-## Step 6: Testing the Deployment
-
-### 6.1 Local Testing
-Test the MCP server locally first:
-```bash
-# Clone and test locally
-git clone https://github.com/Silverstar187/supabase-mcp-docker.git
-cd supabase-mcp-docker
-cp env.example .env
-# Edit .env with your credentials
-docker-compose -f docker-compose.yaml up --build
-```
-
-### 6.2 Production Testing
-Once deployed on Coolify, test the MCP server:
-```bash
-# Test MCP tools list
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | \
-curl -X POST https://your-app.your-coolify-domain.com/mcp \
-  -H "Content-Type: application/json" \
-  -d @-
-```
-
-## Step 7: Integration Examples
-
-### 7.1 For Pipecat Cloud
 ```python
-import subprocess
-import json
+import httpx
+import time
 
-# Use your deployed Coolify URL
-mcp_process = subprocess.Popen([
-    'docker', 'run', '--rm', '-i',
-    '-e', f'SUPABASE_ACCESS_TOKEN={token}',
-    'your-coolify-registry-url/supabase-mcp-server',
-    'node', 'packages/mcp-server-supabase/dist/transports/stdio.js',
-    '--project-ref=your_project_ref',
-    '--read-only'
-], stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+class SupabaseMCP:
+    def __init__(self, base_url: str):
+        self.base_url = base_url
+        self.session_id = f"pipecat-{int(time.time())}"
+    
+    async def call_tool(self, tool_name: str, arguments: dict):
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                f"{self.base_url}/mcp",
+                json={
+                    "jsonrpc": "2.0",
+                    "id": f"req-{int(time.time())}",
+                    "method": "tools/call", 
+                    "params": {
+                        "name": tool_name,
+                        "arguments": arguments
+                    }
+                },
+                headers={
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "Mcp-Session-Id": self.session_id
+                }
+            )
+            return response.json()
+
+# Usage
+mcp = SupabaseMCP("https://mcp-server.your-coolify-domain.com")
+result = await mcp.call_tool("query", {"sql": "SELECT * FROM todos"})
 ```
 
-### 7.2 For n8n Workflows
+## 📡 n8n Integration (SSE)
+
+### n8n MCP Client Node Configuration
+
+1. **Add MCP Client Node** to your n8n workflow
+2. **Configure endpoint**:
+   - **URL**: `https://mcp-server.your-coolify-domain.com/mcp`
+   - **Method**: `POST`
+   - **Headers**: `Accept: text/event-stream`
+3. **Authentication**: None (unless you add custom auth)
+4. **Test connection** to verify it works
+
+### n8n Workflow Example
+
 ```json
 {
-  "parameters": {
-    "url": "https://your-app.your-coolify-domain.com/mcp",
-    "options": {
-      "headers": {
-        "Content-Type": "application/json"
-      },
-      "body": {
-        "jsonrpc": "2.0",
-        "id": 1,
-        "method": "tools/call",
-        "params": {
-          "name": "execute_sql",
-          "arguments": {
-            "sql": "SELECT COUNT(*) FROM users"
+  "nodes": [
+    {
+      "parameters": {
+        "url": "https://mcp-server.your-coolify-domain.com/mcp",
+        "options": {
+          "headers": {
+            "Content-Type": "application/json",
+            "Accept": "text/event-stream"
+          },
+          "body": {
+            "jsonrpc": "2.0",
+            "id": "n8n-{{ $workflow.id }}",
+            "method": "tools/call",
+            "params": {
+              "name": "query",
+              "arguments": {
+                "sql": "{{ $json.query }}"
+              }
+            }
           }
         }
-      }
+      },
+      "type": "@n8n/n8n-nodes-mcp.mcpClient",
+      "position": [400, 240],
+      "name": "Supabase MCP Query"
     }
-  },
-  "type": "n8n-nodes-base.httpRequest"
+  ]
 }
 ```
 
-## Troubleshooting
+## 💻 Desktop Integration (STDIO)
+
+For **local development** with Cursor, Windsurf, Claude Desktop:
+
+### Claude Desktop Configuration
+
+Add to your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "supabase": {
+      "command": "docker",
+      "args": [
+        "run", "--rm", "-i",
+        "-e", "SUPABASE_ACCESS_TOKEN=your_token",
+        "-e", "SUPABASE_PROJECT_REF=your_ref",
+        "your-coolify-registry/mcp-server:latest",
+        "node", "packages/mcp-server-supabase/dist/transports/stdio.js",
+        "--project-ref=your_ref"
+      ]
+    }
+  }
+}
+```
+
+## 🔍 Testing & Monitoring
+
+### Health Check
+```bash
+curl https://mcp-server.your-coolify-domain.com/health
+```
+
+### Status Check
+```bash  
+curl https://mcp-server.your-coolify-domain.com/mcp/status
+```
+
+### Available Tools
+```bash
+curl -X POST https://mcp-server.your-coolify-domain.com/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{"jsonrpc": "2.0", "id": "test", "method": "tools/list", "params": {}}'
+```
+
+## 🛠 Troubleshooting
 
 ### Common Issues
 
-**Build Fails:**
-- Check if `docker-compose.yaml` exists in root
-- Verify environment variables are set correctly
-- Check build logs for specific error messages
+1. **Connection refused**: Check if port 3000 is properly exposed
+2. **CORS errors**: The server includes CORS headers, but verify your domain configuration
+3. **n8n SSE timeout**: Ensure `Accept: text/event-stream` header is set
+4. **Pipecat HTTP errors**: Use `Accept: application/json` for Streamable HTTP
 
-**Container Won't Start:**
-- Verify Supabase credentials are valid
-- Check if PROJECT_REF is correct
-- Ensure sufficient memory allocation (min 512MB)
+### Debug Logs
 
-**MCP Server Not Responding:**
-- Check container logs for startup errors
-- Verify port 3000 is exposed
-- Test with simpler MCP request first
+Check Coolify application logs:
+```bash
+# In Coolify dashboard
+Application → Logs → Real-time logs
+```
 
-**Supabase Connection Issues:**
-- Validate Personal Access Token
-- Check Project Reference ID format
-- Ensure network connectivity from Coolify to Supabase
+Look for:
+- `MCP HTTP Server running on port 3000`
+- `Streamable HTTP: POST /mcp`
+- `SSE (legacy): POST /mcp with Accept: text/event-stream`
 
-### Support Resources
-- [Coolify Documentation](https://coolify.io/docs)
-- [Supabase MCP GitHub Issues](https://github.com/Silverstar187/supabase-mcp-docker/issues)
-- [Model Context Protocol Documentation](https://modelcontextprotocol.io/introduction)
+## 🎯 Summary
 
-## Security Best Practices
+Your deployed MCP server provides **universal compatibility**:
 
-1. **Environment Variables:** Never commit credentials to git
-2. **Read-Only Mode:** Always use `--read-only` in production
-3. **Project Scoping:** Limit access with `--project-ref`
-4. **Feature Limiting:** Use `--features` to enable only needed tools
-5. **Network Security:** Configure proper firewall rules in Coolify
+- ✅ **Modern**: Streamable HTTP for Pipecat Cloud & new clients
+- ✅ **Compatible**: SSE for n8n MCP Client integration
+- ✅ **Local**: STDIO for desktop applications
+- ✅ **Reliable**: Health checks & monitoring endpoints
 
----
-
-**Repository:** [https://github.com/Silverstar187/supabase-mcp-docker](https://github.com/Silverstar187/supabase-mcp-docker)  
-**Docker Compose File:** `docker-compose.yaml`  
-**Build Pack:** Docker Compose 
+This gives you the flexibility to integrate with any MCP client, current or future! 🚀 

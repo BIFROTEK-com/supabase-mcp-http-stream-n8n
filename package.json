@@ -5,7 +5,13 @@
     "test": "npm run test --workspace @supabase/mcp-utils --workspace @supabase/mcp-server-supabase",
     "test:coverage": "npm run test:coverage --workspace @supabase/mcp-server-supabase",
     "format": "biome check --write .",
-    "format:check": "biome check ."
+    "format:check": "biome check .",
+    "start": "node mcp-http-server.js",
+    "start:stdio": "node packages/mcp-server-supabase/dist/transports/stdio.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",

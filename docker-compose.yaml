@@ -14,18 +14,16 @@ services:
       - MCP_FEATURES=${MCP_FEATURES:-database,docs,development,functions}
       # Optional: Read-only mode (true/false)
       - MCP_READ_ONLY=${MCP_READ_ONLY:-true}
-      # Optional: Port for health checks
+      # Optional: Port for HTTP server
       - MCP_PORT=${MCP_PORT:-3000}
+      # Optional: Node environment
+      - NODE_ENV=${NODE_ENV:-production}
     ports:
       - "${MCP_PORT:-3000}:3000"
-    # Override default command with CLI arguments
-    command: >
-      node packages/mcp-server-supabase/dist/transports/stdio.js
-      ${SUPABASE_PROJECT_REF:+--project-ref=${SUPABASE_PROJECT_REF}}
-      ${MCP_READ_ONLY:+--read-only}
-      ${MCP_FEATURES:+--features=${MCP_FEATURES}}
+    # Use HTTP server instead of STDIO
+    command: ["npm", "start"]
     healthcheck:
-      test: ["CMD", "node", "-e", "console.log('MCP Server is healthy')"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s
       timeout: 10s
       retries: 3

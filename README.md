@@ -74,30 +74,41 @@ After deployment, note your server URL: `https://your-app.coolify.domain.com`
 
 ### Integration with n8n
 
-**Option 1: Execute Command Node**
+**Option 1: Native MCP Client (Recommended)**
+
+Install n8n MCP node:
+```bash
+npm install n8n-nodes-mcp
+```
+
+Configure MCP Client node:
 ```json
 {
   "nodes": [
     {
       "parameters": {
-        "command": "docker run --rm -i -e SUPABASE_ACCESS_TOKEN='{{ $env.SUPABASE_TOKEN }}' -e SUPABASE_PROJECT_REF='{{ $env.PROJECT_REF }}' your-coolify-image node packages/mcp-server-supabase/dist/transports/stdio.js --project-ref={{ $env.PROJECT_REF }} --read-only --features=database,docs",
-        "additionalFields": {
-          "stdin": "{{ $json.mcpRequest }}"
+        "endpoint": "https://sb-mcp.bifrotek.com/mcp",
+        "protocol": "sse",
+        "method": "tools/call",
+        "tool": "execute_sql",
+        "arguments": {
+          "sql": "SELECT * FROM todos ORDER BY created_at DESC LIMIT 5;"
         }
       },
-      "type": "n8n-nodes-base.executeCommand",
+      "type": "n8n-nodes-mcp.mcpClient",
       "position": [380, 240],
-      "name": "Supabase MCP"
+      "name": "Supabase MCP Client"
     }
   ]
 }
 ```
 
-**Option 2: HTTP Request Node (if using HTTP transport)**
+**Option 2: HTTP Request Node (Alternative)**
 ```json
 {
   "parameters": {
-    "url": "https://your-mcp-server.coolify.domain.com/mcp",
+    "url": "https://sb-mcp.bifrotek.com/mcp",
+    "method": "POST",
     "options": {
       "headers": {
         "Content-Type": "application/json"
@@ -109,14 +120,14 @@ After deployment, note your server URL: `https://your-app.coolify.domain.com`
         "params": {
           "name": "execute_sql",
           "arguments": {
-            "sql": "SELECT * FROM users LIMIT 10"
+            "sql": "SELECT COUNT(*) FROM todos;"
           }
         }
       }
     }
   },
   "type": "n8n-nodes-base.httpRequest",
-  "name": "Query Supabase"
+  "name": "Supabase HTTP Request"
 }
 ```
 
@@ -158,7 +169,12 @@ After deployment, note your server URL: `https://your-app.coolify.domain.com`
 
 ### Integration with Pipecat
 
-**Basic Pipecat Integration**
+### Pipecat Cloud Integration
+
+For Pipecat voicebots, use **STDIO subprocess integration** (not HTTP):
+
+#### Option 1: Direct STDIO Integration
+
 ```python
 import subprocess
 import json
@@ -200,12 +216,12 @@ class SupabaseMCPService:
             }
         }
         
-        # Send request
+        # Send request via STDIO
         request_json = json.dumps(request) + '\n'
         self.process.stdin.write(request_json.encode())
         self.process.stdin.flush()
         
-        # Read response
+        # Read response via STDIO
         response_line = self.process.stdout.readline()
         return json.loads(response_line.decode())
     
@@ -215,7 +231,7 @@ class SupabaseMCPService:
             self.process.terminate()
             self.process.wait()
 
-# Pipecat Pipeline with Supabase MCP
+# Usage in Pipecat Pipeline
 async def main():
     # Initialize services
     llm = OpenAILLMService(api_key="your-openai-key")
@@ -225,119 +241,61 @@ async def main():
         access_token="your_supabase_token"
     )
     
-    # Start MCP server
+    # Start MCP server subprocess
     await supabase_mcp.start()
     
-    # Create pipeline
-    pipeline = Pipeline([
-        llm,
-        supabase_mcp,  # Add as a service in your pipeline
-        tts
-    ])
-    
-    # Example: Query database through voice
-    async def handle_voice_query(query: str):
-        # Use LLM to convert natural language to SQL
-        sql_query = await llm.process(f"Convert to SQL: {query}")
-        
-        # Execute SQL via MCP
-        result = await supabase_mcp.call_tool("execute_sql", {
-            "sql": sql_query
-        })
-        
-        # Convert result to speech
-        await tts.process(f"Here are your results: {result}")
-    
-    # Run pipeline
+    # Use in pipeline...
     try:
-        await pipeline.run()
+        result = await supabase_mcp.call_tool("execute_sql", {
+            "sql": "SELECT COUNT(*) FROM todos;"
+        })
+        print("SQL Result:", result)
     finally:
         await supabase_mcp.stop()
 
-if __name__ == "__main__":
-    asyncio.run(main())
-```
+#### Option 2: Use Pipecat's MCP Extension
 
-**Advanced Pipecat Example: Voice-Controlled Database Assistant**
-```python
-from pipecat.vad import SileroVADAnalyzer
-from pipecat.pipeline.runner import PipelineRunner
-from pipecat.pipeline.task import PipelineTask
-from pipecat.frames.frames import TextFrame, AudioRawFrame
-from pipecat.services.cartesia import CartesiaTTSService
-from pipecat.services.deepgram import DeepgramSTTService
-
-class VoiceDatabaseAssistant(PipelineTask):
-    def __init__(self):
-        super().__init__()
-        self.supabase_mcp = SupabaseMCPService(
-            project_ref=os.getenv("SUPABASE_PROJECT_REF"),
-            access_token=os.getenv("SUPABASE_ACCESS_TOKEN")
-        )
-        
-    async def process_frame(self, frame):
-        if isinstance(frame, TextFrame):
-            # Process voice commands
-            text = frame.text.lower()
-            
-            if "show tables" in text:
-                result = await self.supabase_mcp.call_tool("list_tables")
-                tables = [table["name"] for table in result.get("result", [])]
-                response = f"Available tables: {', '.join(tables)}"
-                
-            elif "count users" in text:
-                result = await self.supabase_mcp.call_tool("execute_sql", {
-                    "sql": "SELECT COUNT(*) as total FROM users"
-                })
-                count = result["result"][0]["total"]
-                response = f"Total users: {count}"
-                
-            elif "search docs" in text and "about" in text:
-                topic = text.split("about")[-1].strip()
-                result = await self.supabase_mcp.call_tool("search_docs", {
-                    "query": topic
-                })
-                response = f"Documentation found: {result.get('result', 'No results')}"
-                
-            else:
-                response = "I can help you with: show tables, count users, or search docs about a topic"
-            
-            # Send response back through pipeline
-            await self.push_frame(TextFrame(response))
-
-# Complete pipeline setup
-async def run_voice_assistant():
-    stt = DeepgramSTTService(api_key="your-deepgram-key")
-    llm = OpenAILLMService(api_key="your-openai-key")
-    tts = CartesiaTTSService(api_key="your-cartesia-key")
-    vad = SileroVADAnalyzer()
-    assistant = VoiceDatabaseAssistant()
-    
-    # Pipeline: Audio -> STT -> Assistant -> LLM -> TTS -> Audio
-    pipeline = Pipeline([
-        vad,           # Voice activity detection
-        stt,           # Speech to text
-        assistant,     # Our database assistant
-        llm,           # Language model for responses
-        tts            # Text to speech
-    ])
-    
-    # Run the pipeline
-    runner = PipelineRunner()
-    await runner.run(pipeline)
-
-if __name__ == "__main__":
-    asyncio.run(run_voice_assistant())
-```
-
-**Environment Setup for Pipecat**
+Install Pipecat with MCP support:
 ```bash
-# .env file for Pipecat project
-SUPABASE_ACCESS_TOKEN=sbp_your_token_here
-SUPABASE_PROJECT_REF=your_project_ref_here
-OPENAI_API_KEY=your_openai_key
-ELEVENLABS_API_KEY=your_elevenlabs_key
-DEEPGRAM_API_KEY=your_deepgram_key
+pip install "pipecat-ai[mcp]"
+```
+
+Then use built-in MCP integration:
+```python
+from pipecat.services.mcp import MCPService
+
+# Pipecat handles the subprocess management
+mcp_service = MCPService(
+    command="node",
+    args=[
+        "packages/mcp-server-supabase/dist/transports/stdio.js",
+        "--project-ref=your_project_ref",
+        "--read-only"
+    ],
+    env={"SUPABASE_ACCESS_TOKEN": "your_token"}
+)
+```
+
+#### Option 3: HTTP Fallback (if STDIO not available)
+
+For cloud deployments where subprocess isn't available:
+
+```python
+import requests
+
+# Health check
+response = requests.get("https://sb-mcp.bifrotek.com/health")
+print(response.json())
+
+# Execute SQL
+response = requests.post("https://sb-mcp.bifrotek.com/sql", json={
+    "sql": "SELECT count(*) FROM todos;"
+})
+print(response.json())
+
+# List available tools
+response = requests.get("https://sb-mcp.bifrotek.com/tools")
+print(response.json())
 ```
 
 ## Prerequisites
@@ -600,3 +558,129 @@ npm install --ignore-scripts
 ## License
 
 This project is licensed under Apache 2.0. See the [LICENSE](./LICENSE) file for details.
+
+## 🔄 Transport Protocols
+
+This MCP server supports **multiple transport protocols** for maximum compatibility:
+
+### 1. **STDIO** (Native Desktop Integration)
+Perfect for desktop applications like Cursor, Windsurf, Claude Desktop:
+```bash
+# Direct STDIO execution
+node packages/mcp-server-supabase/dist/transports/stdio.js --project-ref=your_ref --access-token=your_token
+```
+
+### 2. **Streamable HTTP** (MCP 2025 Standard) ⭐ NEW
+The official new transport protocol replacing SSE:
+```http
+POST /mcp HTTP/1.1
+Content-Type: application/json
+Accept: application/json
+Mcp-Session-Id: session-123
+
+{
+  "jsonrpc": "2.0",
+  "id": "req-1",
+  "method": "tools/list",
+  "params": {}
+}
+```
+
+### 3. **SSE** (Server-Sent Events) - Legacy Support
+For older MCP clients and n8n compatibility:
+```http
+POST /mcp HTTP/1.1
+Content-Type: application/json
+Accept: text/event-stream
+
+{
+  "jsonrpc": "2.0",
+  "id": "req-1", 
+  "method": "initialize",
+  "params": {
+    "protocolVersion": "2024-11-05",
+    "capabilities": {},
+    "clientInfo": {"name": "n8n", "version": "1.0"}
+  }
+}
+```
+
+## 🔗 Integration Examples
+
+### Pipecat Cloud Integration (RECOMMENDED: Streamable HTTP)
+
+**Modern Streamable HTTP approach:**
+```python
+import httpx
+import asyncio
+from pipecat.pipeline.pipeline import Pipeline
+from pipecat.services.mcp import StreamableHTTPMCPService
+
+class SupabaseMCPService:
+    def __init__(self, base_url: str, project_ref: str, access_token: str):
+        self.base_url = base_url
+        self.project_ref = project_ref
+        self.access_token = access_token
+        self.session_id = f"pipecat-{int(time.time())}"
+        
+    async def call_tool(self, tool_name: str, arguments: dict):
+        """Call MCP tool using Streamable HTTP"""
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{self.base_url}/mcp",
+                json={
+                    "jsonrpc": "2.0",
+                    "id": f"req-{int(time.time())}",
+                    "method": "tools/call",
+                    "params": {
+                        "name": tool_name,
+                        "arguments": arguments
+                    }
+                },
+                headers={
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "Mcp-Session-Id": self.session_id
+                }
+            )
+            return response.json()
+    
+    async def list_tools(self):
+        """List available tools"""
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{self.base_url}/mcp",
+                json={
+                    "jsonrpc": "2.0", 
+                    "id": "list-tools",
+                    "method": "tools/list",
+                    "params": {}
+                },
+                headers={
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "Mcp-Session-Id": self.session_id
+                }
+            )
+            return response.json()
+
+# Usage in Pipecat pipeline
+async def setup_pipecat_with_mcp():
+    mcp_service = SupabaseMCPService(
+        base_url="https://your-mcp-server.domain.com",
+        project_ref="your_project_ref",
+        access_token="your_access_token"
+    )
+    
+    # Initialize MCP connection
+    tools = await mcp_service.list_tools()
+    print(f"Available tools: {tools}")
+    
+    # Call a tool
+    result = await mcp_service.call_tool("query", {
+        "sql": "SELECT * FROM todos LIMIT 5"
+    })
+    print(f"Query result: {result}")
+```
+
+**Legacy STDIO approach (still supported):**
