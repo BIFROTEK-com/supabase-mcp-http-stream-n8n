@@ -559,128 +559,355 @@ npm install --ignore-scripts
 
 This project is licensed under Apache 2.0. See the [LICENSE](./LICENSE) file for details.
 
-## 🔄 Transport Protocols
+## 🔄 **Integration Guide - Transport Protocols**
 
-This MCP server supports **multiple transport protocols** for maximum compatibility:
+This MCP server supports **3 different transport protocols** depending on your use case. Choose the right one for your application:
 
-### 1. **STDIO** (Native Desktop Integration)
-Perfect for desktop applications like Cursor, Windsurf, Claude Desktop:
+### 📋 **Quick Reference**
+
+| Transport | Use Case | Accept Header | Endpoint |
+|-----------|----------|---------------|----------|
+| **Streamable HTTP** | Pipecat Cloud, Modern APIs | `application/json` | `POST /mcp` |
+| **SSE** | n8n MCP Client | `text/event-stream` | `POST /mcp` |
+| **STDIO** | Desktop Apps | N/A | Direct subprocess |
+
+---
+
+## 🚀 **1. Streamable HTTP Transport (MCP 2025 Standard)**
+
+**Perfect for:** Pipecat Cloud, modern cloud services, HTTP-based integrations
+
+### **Basic Request**
 ```bash
-# Direct STDIO execution
-node packages/mcp-server-supabase/dist/transports/stdio.js --project-ref=your_ref --access-token=your_token
+curl -X POST https://your-domain.com/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -H "Mcp-Session-Id: your-session-123" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": "request-1",
+    "method": "tools/list",
+    "params": {}
+  }'
 ```
 
-### 2. **Streamable HTTP** (MCP 2025 Standard) ⭐ NEW
-The official new transport protocol replacing SSE:
-```http
-POST /mcp HTTP/1.1
-Content-Type: application/json
-Accept: application/json
-Mcp-Session-Id: session-123
+### **Pipecat Cloud Integration**
+```python
+import aiohttp
+import json
 
-{
-  "jsonrpc": "2.0",
-  "id": "req-1",
-  "method": "tools/list",
-  "params": {}
-}
+class SupabaseMCPClient:
+    def __init__(self, base_url: str):
+        self.base_url = f"{base_url}/mcp"
+        self.session_id = f"pipecat-{uuid.uuid4()}"
+    
+    async def call_tool(self, tool_name: str, arguments: dict):
+        async with aiohttp.ClientSession() as session:
+            payload = {
+                "jsonrpc": "2.0",
+                "id": f"tool-{int(time.time())}",
+                "method": "tools/call",
+                "params": {
+                    "name": tool_name,
+                    "arguments": arguments
+                }
+            }
+            
+            headers = {
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "Mcp-Session-Id": self.session_id
+            }
+            
+            async with session.post(self.base_url, json=payload, headers=headers) as resp:
+                result = await resp.json()
+                return result["result"]
+
+# Usage in Pipecat Pipeline
+mcp_client = SupabaseMCPClient("https://your-coolify-domain.com")
+
+# List all tables
+tables = await mcp_client.call_tool("list_tables", {"schemas": ["public"]})
+
+# Execute SQL query
+data = await mcp_client.call_tool("execute_sql", {
+    "query": "SELECT * FROM profiles WHERE user_id = $1 LIMIT 1",
+    "params": ["user-uuid-here"]
+})
 ```
 
-### 3. **SSE** (Server-Sent Events) - Legacy Support
-For older MCP clients and n8n compatibility:
-```http
-POST /mcp HTTP/1.1
-Content-Type: application/json
-Accept: text/event-stream
+### **Available Tools**
+- `list_tables` - List database tables
+- `execute_sql` - Run SQL queries
+- `list_extensions` - List PostgreSQL extensions
+- `get_project_url` - Get Supabase project URL
+- `get_anon_key` - Get anonymous API key
+- `search_docs` - Search Supabase documentation
+- `list_edge_functions` - List Edge Functions
+- `deploy_edge_function` - Deploy Edge Functions
 
+---
+
+## 📡 **2. SSE Transport (Server-Sent Events)**
+
+**Perfect for:** n8n MCP Client integration, real-time applications
+
+### **n8n MCP Client Setup**
+
+1. **Install n8n MCP Client Node**
+   ```bash
+   npm install n8n-nodes-mcp
+   ```
+
+2. **Add MCP Client Node to Workflow**
+   - Node Type: `MCP Client`
+   - Endpoint URL: `https://your-coolify-domain.com/mcp`
+   - Transport: `SSE (Server-Sent Events)`
+   - Authentication: None (or API key if secured)
+
+3. **Example n8n Workflow Configuration**
+   ```json
+   {
+     "nodes": [
+       {
+         "parameters": {
+           "endpoint": "https://your-coolify-domain.com/mcp",
+           "transport": "sse",
+           "tool": "list_tables",
+           "arguments": {
+             "schemas": ["public"]
+           }
+         },
+         "type": "n8n-nodes-mcp.mcpClient",
+         "name": "Get Supabase Tables"
+       }
+     ]
+   }
+   ```
+
+### **Manual SSE Connection**
+```bash
+# Connect to SSE endpoint
+curl -X POST https://your-domain.com/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: text/event-stream" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": "sse-request",
+    "method": "tools/list",
+    "params": {}
+  }'
+
+# Expected SSE Response:
+# data: {"type":"connection","sessionId":"session-1","message":"Connected to MCP server"}
+# data: {"result":{"tools":[...]},"jsonrpc":"2.0","id":"sse-request"}
+```
+
+### **JavaScript SSE Client**
+```javascript
+// For web applications
+const eventSource = new EventSource('/mcp');
+
+eventSource.onmessage = function(event) {
+    const data = JSON.parse(event.data);
+    console.log('MCP Response:', data);
+};
+
+// Send MCP request
+fetch('/mcp', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'text/event-stream'
+    },
+    body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: "web-request",
+        method: "tools/list",
+        params: {}
+    })
+});
+```
+
+---
+
+## 💻 **3. STDIO Transport (Native Desktop)**
+
+**Perfect for:** Cursor, Windsurf, Claude Desktop, local development
+
+### **Claude Desktop Configuration**
+Add to your `claude_desktop_config.json`:
+
+```json
 {
-  "jsonrpc": "2.0",
-  "id": "req-1", 
-  "method": "initialize",
-  "params": {
-    "protocolVersion": "2024-11-05",
-    "capabilities": {},
-    "clientInfo": {"name": "n8n", "version": "1.0"}
+  "mcpServers": {
+    "supabase": {
+      "command": "node",
+      "args": [
+        "/path/to/packages/mcp-server-supabase/dist/transports/stdio.js",
+        "--project-ref=your_project_ref",
+        "--access-token=your_access_token"
+      ],
+      "env": {
+        "SUPABASE_PROJECT_REF": "your_project_ref",
+        "SUPABASE_ACCESS_TOKEN": "your_access_token"
+      }
+    }
   }
 }
 ```
 
-## 🔗 Integration Examples
+### **Cursor/Windsurf Integration**
+1. Install the MCP extension for your editor
+2. Add server configuration:
+   ```json
+   {
+     "mcp": {
+       "servers": {
+         "supabase": {
+           "command": "node",
+           "args": [
+             "packages/mcp-server-supabase/dist/transports/stdio.js"
+           ],
+           "env": {
+             "SUPABASE_PROJECT_REF": "your_project_ref",
+             "SUPABASE_ACCESS_TOKEN": "your_access_token"
+           }
+         }
+       }
+     }
+   }
+   ```
 
-### Pipecat Cloud Integration (RECOMMENDED: Streamable HTTP)
+### **Direct STDIO Usage**
+```bash
+# Start MCP server directly
+node packages/mcp-server-supabase/dist/transports/stdio.js \
+  --project-ref=your_project_ref \
+  --access-token=your_access_token
 
-**Modern Streamable HTTP approach:**
-```python
-import httpx
-import asyncio
-from pipecat.pipeline.pipeline import Pipeline
-from pipecat.services.mcp import StreamableHTTPMCPService
-
-class SupabaseMCPService:
-    def __init__(self, base_url: str, project_ref: str, access_token: str):
-        self.base_url = base_url
-        self.project_ref = project_ref
-        self.access_token = access_token
-        self.session_id = f"pipecat-{int(time.time())}"
-        
-    async def call_tool(self, tool_name: str, arguments: dict):
-        """Call MCP tool using Streamable HTTP"""
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{self.base_url}/mcp",
-                json={
-                    "jsonrpc": "2.0",
-                    "id": f"req-{int(time.time())}",
-                    "method": "tools/call",
-                    "params": {
-                        "name": tool_name,
-                        "arguments": arguments
-                    }
-                },
-                headers={
-                    "Content-Type": "application/json",
-                    "Accept": "application/json",
-                    "Mcp-Session-Id": self.session_id
-                }
-            )
-            return response.json()
-    
-    async def list_tools(self):
-        """List available tools"""
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{self.base_url}/mcp",
-                json={
-                    "jsonrpc": "2.0", 
-                    "id": "list-tools",
-                    "method": "tools/list",
-                    "params": {}
-                },
-                headers={
-                    "Content-Type": "application/json",
-                    "Accept": "application/json",
-                    "Mcp-Session-Id": self.session_id
-                }
-            )
-            return response.json()
-
-# Usage in Pipecat pipeline
-async def setup_pipecat_with_mcp():
-    mcp_service = SupabaseMCPService(
-        base_url="https://your-mcp-server.domain.com",
-        project_ref="your_project_ref",
-        access_token="your_access_token"
-    )
-    
-    # Initialize MCP connection
-    tools = await mcp_service.list_tools()
-    print(f"Available tools: {tools}")
-    
-    # Call a tool
-    result = await mcp_service.call_tool("query", {
-        "sql": "SELECT * FROM todos LIMIT 5"
-    })
-    print(f"Query result: {result}")
+# Send JSON-RPC over STDIN
+echo '{"jsonrpc":"2.0","id":"1","method":"tools/list","params":{}}' | \
+node packages/mcp-server-supabase/dist/transports/stdio.js \
+  --project-ref=your_project_ref \
+  --access-token=your_access_token
 ```
 
-**Legacy STDIO approach (still supported):**
+### **Python Subprocess Integration**
+```python
+import subprocess
+import json
+
+class MCPSubprocess:
+    def __init__(self, project_ref: str, access_token: str):
+        self.process = subprocess.Popen([
+            'node', 
+            'packages/mcp-server-supabase/dist/transports/stdio.js',
+            f'--project-ref={project_ref}',
+            f'--access-token={access_token}'
+        ], 
+        stdin=subprocess.PIPE, 
+        stdout=subprocess.PIPE, 
+        stderr=subprocess.PIPE,
+        text=True)
+    
+    def call_tool(self, method: str, params: dict = None):
+        request = {
+            "jsonrpc": "2.0",
+            "id": "python-request",
+            "method": method,
+            "params": params or {}
+        }
+        
+        self.process.stdin.write(json.dumps(request) + '\n')
+        self.process.stdin.flush()
+        
+        response_line = self.process.stdout.readline()
+        return json.loads(response_line)
+
+# Usage
+mcp = MCPSubprocess("your_project_ref", "your_access_token")
+tables = mcp.call_tool("tools/call", {
+    "name": "list_tables",
+    "arguments": {"schemas": ["public"]}
+})
+```
+
+---
+
+## ⚙️ **Environment Variables**
+
+All transports use the same environment variables:
+
+```bash
+# Required
+SUPABASE_PROJECT_REF=your_project_reference_id
+SUPABASE_ACCESS_TOKEN=your_personal_access_token
+
+# Optional
+MCP_FEATURES=database,docs,development,functions  # Default: all features
+MCP_READ_ONLY=true                                # Default: true (safe mode)
+MCP_PORT=3000                                     # HTTP server port (Streamable HTTP + SSE only)
+```
+
+---
+
+## 🔍 **Testing Your Integration**
+
+### **Health Check**
+```bash
+curl https://your-domain.com/health
+# Expected: {"status":"ok","mcpReady":true,"timestamp":"..."}
+```
+
+### **MCP Status**
+```bash
+curl https://your-domain.com/mcp/status
+# Expected: {"protocol":"mcp","version":"2024-11-05","transports":["streamable-http","sse"],...}
+```
+
+### **List Available Tools**
+```bash
+curl -X POST https://your-domain.com/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json" \
+  -d '{"jsonrpc":"2.0","id":"test","method":"tools/list","params":{}}'
+```
+
+---
+
+## 🔐 **Security Notes**
+
+- **Access Token**: Keep your Supabase access token secure
+- **Read-Only Mode**: Enabled by default to prevent accidental data modification
+- **RLS**: Row Level Security is enforced on all database operations
+- **CORS**: Configured for cross-origin requests (HTTP/SSE only)
+
+---
+
+## 🐛 **Troubleshooting**
+
+### **Common Issues**
+
+1. **"MCP server not ready"**
+   - Check environment variables are set correctly
+   - Verify Supabase project is accessible
+   - Check server logs for detailed error messages
+
+2. **Connection timeouts**
+   - Increase request timeout (default: 30 seconds)
+   - Check network connectivity to Supabase
+
+3. **JSON parsing errors**
+   - Ensure request format follows JSON-RPC 2.0 specification
+   - Check Content-Type headers are set correctly
+
+4. **Tool not found**
+   - Use `tools/list` to see available tools
+   - Check tool name spelling and parameters
+
+### **Debug Mode**
+Set environment variable for verbose logging:
+```bash
+DEBUG=mcp:* node mcp-http-server.js
+```
