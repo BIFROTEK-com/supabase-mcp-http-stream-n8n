@@ -14,7 +14,7 @@ services:
     labels:
       # Traefik configuration for Coolify
       - traefik.enable=true
-      - traefik.http.routers.supabase-mcp.rule=Host(`your-domain.com`) # CHANGE THIS to your actual domain
+      - traefik.http.routers.supabase-mcp.rule=Host(`${DOMAIN}`)
       - traefik.http.routers.supabase-mcp.entrypoints=http,https
       - traefik.http.routers.supabase-mcp.tls.certresolver=letsencrypt
       - traefik.http.services.supabase-mcp.loadbalancer.server.port=3333
@@ -44,11 +44,11 @@ services:
     # Use HTTP server instead of STDIO
     command: ["npm", "start"]
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:${MCP_PORT:-3333}/ping", "||", "exit", "1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3333/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 2
+      start_period: 15s
     # Resource limits to prevent abuse
     deploy:
       resources:

@@ -140,6 +140,10 @@ curl http://localhost:3333/health
 - `MCP_RATE_LIMIT_GENERAL` - Max requests per minute for all endpoints (default: `60`)
 - `MCP_ALLOWED_ORIGINS` - Comma-separated allowed CORS origins (default: `"*"`, set to specific domains for security)
 
+**Deployment configuration:**
+
+- `DOMAIN` - Your domain name for Traefik routing and SSL certificates (required for Coolify deployment)
+
 
 
 ## Deployment Examples
@@ -181,6 +185,9 @@ MCP_RATE_LIMIT_GENERAL=30
 
 # CORS (restrict to your domains)
 MCP_ALLOWED_ORIGINS="https://yourdomain.com,https://app.yourdomain.com"
+
+# Deployment configuration (required for Coolify)
+DOMAIN=your-domain.com
 
 ```
 
