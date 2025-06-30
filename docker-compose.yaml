@@ -29,8 +29,8 @@ services:
     # Use HTTP server instead of STDIO
     command: ["npm", "start"]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${MCP_PORT:-3333}/health"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:${MCP_PORT:-3333}/health", "||", "exit", "1"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s 
+      start_period: 60s 

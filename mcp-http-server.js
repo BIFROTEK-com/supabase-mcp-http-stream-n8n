@@ -440,6 +440,32 @@ app.get('/health', (req, res) => {
     });
 });
 
+// Debug endpoint for troubleshooting
+app.get('/debug', (req, res) => {
+    res.json({
+        server: {
+            port: port,
+            uptime: process.uptime(),
+            memory: process.memoryUsage(),
+            version: process.version
+        },
+        mcp: {
+            processRunning: !!mcpProcess,
+            processReady: mcpReady,
+            processKilled: mcpProcess?.killed || false
+        },
+        environment: {
+            NODE_ENV: process.env.NODE_ENV,
+            MCP_PORT: process.env.MCP_PORT,
+            hasSupabaseToken: !!process.env.SUPABASE_ACCESS_TOKEN,
+            hasProjectRef: !!process.env.SUPABASE_PROJECT_REF,
+            hasApiKeys: !!process.env.MCP_API_KEYS,
+            features: process.env.MCP_FEATURES
+        },
+        timestamp: new Date().toISOString()
+    });
+});
+
 // MCP Status endpoint for n8n discovery
 app.get('/mcp/status', (req, res) => {
     res.json({
@@ -543,14 +569,25 @@ app.post('/tools', async (req, res) => {
 });
 
 // Start server
+console.log('🚀 Starting MCP HTTP Server...');
+console.log(`Port: ${port}`);
+console.log(`Node Environment: ${process.env.NODE_ENV || 'development'}`);
+console.log(`Supabase Token: ${process.env.SUPABASE_ACCESS_TOKEN ? 'configured' : '❌ MISSING'}`);
+console.log(`Supabase Project: ${process.env.SUPABASE_PROJECT_REF ? 'configured' : '❌ MISSING'}`);
+console.log(`API Keys: ${process.env.MCP_API_KEYS ? 'configured' : '⚠️ not configured'}`);
+
 startMCPServer();
 
 app.listen(port, () => {
-    console.log(`MCP HTTP Server running on port ${port}`);
-    console.log(`Streamable HTTP: POST /mcp`);
-    console.log(`SSE (legacy): POST /mcp with Accept: text/event-stream`);
-    console.log(`Status: GET /mcp/status`);
-    console.log(`Health: GET /health`);
+    console.log(`✅ MCP HTTP Server running on port ${port}`);
+    console.log(`📡 Streamable HTTP: POST /mcp`);
+    console.log(`🌊 SSE (legacy): POST /mcp with Accept: text/event-stream`);
+    console.log(`📊 Status: GET /mcp/status`);
+    console.log(`❤️ Health: GET /health`);
+    console.log(`🔧 Debug: GET /debug`);
+    console.log(`🏠 Landing: GET /`);
+    console.log('');
+    console.log('🔗 Ready for connections!');
 });
 
 // Graceful shutdown

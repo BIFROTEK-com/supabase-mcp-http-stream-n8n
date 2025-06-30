@@ -58,9 +58,9 @@ RUN addgroup -g 1001 -S nodejs
 RUN adduser -S mcp -u 1001
 USER mcp
 
-# Health check endpoint
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "const http = require('http'); const req = http.request({hostname: 'localhost', port: process.env.MCP_PORT || 3333, path: '/health', timeout: 2000}, (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }); req.on('error', () => process.exit(1)); req.end();" || exit 1
+# Health check endpoint - simpler version
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:' + (process.env.MCP_PORT || 3333) + '/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))" || exit 1
 
 # Default command - HTTP server for multi-transport support
 CMD ["node", "mcp-http-server.js"] 
