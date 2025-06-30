@@ -1,6 +1,36 @@
-# Supabase MCP Server
+# 🐳 **Standalone Dockerized Supabase MCP Server**
+## **Multi-Transport Support | Production Ready | Self-Hostable**
 
-> Connect your Supabase projects to Cursor, Claude, Windsurf, and other AI assistants.
+> **Host your own Supabase MCP server** with HTTP, SSE, and STDIO support for maximum compatibility with AI assistants, automation tools, and development environments.
+
+![supabase-mcp-demo](https://github.com/user-attachments/assets/3fce101a-b7d4-482f-9182-0be70ed1ad56)
+
+## 🚀 **What This Provides**
+
+This is a **standalone, self-hostable Docker container** that wraps the official Supabase MCP Server and exposes it through **multiple transport protocols**:
+
+### **🔄 Multi-Transport Architecture**
+- **📡 HTTP/REST API** - For web applications and services
+- **🌊 Server-Sent Events (SSE)** - For real-time streaming (n8n, webhooks)
+- **🔌 STDIO** - For desktop AI assistants (Cursor, Claude Desktop, Windsurf)
+- **⚡ Streamable HTTP** - Latest MCP 2025 standard (Pipecat Cloud)
+
+### **🏗️ Deployment Benefits**
+- **🐳 One Docker container** - Deploy anywhere (Coolify, Railway, AWS, DigitalOcean)
+- **🔐 Built-in security** - API keys, rate limiting, CORS protection
+- **📊 Health monitoring** - Health checks and status endpoints
+- **⚙️ Environment-based config** - Easy customization via env vars
+- **🧪 Thoroughly tested** - 27 security tests ensure production readiness
+
+### **🎯 Use Cases**
+- **Self-hosted AI infrastructure** for companies wanting data control
+- **Multi-client MCP access** - One server, multiple interfaces
+- **Production workflows** with n8n, Pipecat, or custom applications
+- **Development environments** with desktop AI assistants
+
+---
+
+The [Model Context Protocol](https://modelcontextprotocol.io/introduction) (MCP) standardizes how Large Language Models (LLMs) talk to external services like Supabase. This Docker container hosts that connection, allowing AI assistants to manage tables, fetch config, and query data. See the [full list of tools](#tools).
 
 > **🤖 AI-Generated Code Notice:** This project was programmed with Claude 4.0 Sonnet and includes comprehensive security testing. While extensively tested, AI-generated code may contain errors or oversights. Please review thoroughly before production use.
 
@@ -16,45 +46,83 @@ This is AI-generated software. While we've implemented extensive security testin
 
 Use at your own risk. No warranty is provided.
 
-![supabase-mcp-demo](https://github.com/user-attachments/assets/3fce101a-b7d4-482f-9182-0be70ed1ad56)
+## 🚀 **Deploy Your Standalone MCP Server**
 
-The [Model Context Protocol](https://modelcontextprotocol.io/introduction) (MCP) standardizes how Large Language Models (LLMs) talk to external services like Supabase. It connects AI assistants directly with your Supabase project and allows them to perform tasks like managing tables, fetching config, and querying data. See the [full list of tools](#tools).
+### **1️⃣ Quick Docker Start**
 
-## Docker Deployment
+Deploy the complete multi-transport MCP server in minutes:
 
-This repository includes production-ready Docker configuration for hosting the Supabase MCP server.
+```bash
+git clone https://github.com/Silverstar187/supabase-mcp-docker.git
+cd supabase-mcp-docker
+```
 
-### Quick Start with Docker
+### **2️⃣ Set up environment variables:**
+```bash
+cp env.example .env
+# Edit .env with your Supabase credentials and security settings
+```
 
-1. **Clone and build:**
-   ```bash
-   git clone https://github.com/Silverstar187/supabase-mcp-docker.git
-   cd supabase-mcp-docker
-   ```
+**Minimum required configuration:**
+```bash
+SUPABASE_ACCESS_TOKEN=sbp_your_token_here
+SUPABASE_PROJECT_REF=your_project_ref_here
+```
 
-2. **Set up environment variables:**
-   ```bash
-   cp env.example .env
-   # Edit .env with your Supabase credentials
-   ```
+**For production, enable security (recommended):**
+```bash
+MCP_API_KEYS="your-secret-key-1,your-secret-key-2"
+MCP_ALLOWED_ORIGINS="https://yourdomain.com"
+MCP_RATE_LIMIT_REQUESTS=50
+```
 
-3. **Run with Docker Compose:**
-   ```bash
-   docker-compose up --build
-   ```
+### **3️⃣ Launch Multi-Transport Server:**
+```bash
+docker-compose up --build
+```
+
+**✅ Your standalone server now provides:**
+- **📡 HTTP API:** `http://localhost:3333/mcp`
+- **🌊 SSE Stream:** `http://localhost:3333/sse`
+- **📊 Health Check:** `http://localhost:3333/health`
+- **🔌 STDIO:** Direct connection for AI assistants
+
+### **4️⃣ Test All Interfaces:**
+
+```bash
+# Test HTTP/JSON-RPC API
+curl -X POST http://localhost:3333/mcp \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-secret-key-1" \
+  -d '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}'
+
+# Test SSE Stream (great for n8n, automation)
+curl -H "X-API-Key: your-secret-key-1" http://localhost:3333/sse
+
+# Test Health (no auth required)
+curl http://localhost:3333/health
+```
 
 ### Environment Variables
 
-Required configuration:
+**Required configuration:**
 
 - `SUPABASE_ACCESS_TOKEN` - Your Supabase Personal Access Token ([Get it here](https://supabase.com/dashboard/account/tokens))
 - `SUPABASE_PROJECT_REF` - Your Supabase Project ID (found in Project Settings → General)
 
-Optional configuration:
+**Optional configuration:**
 
 - `MCP_FEATURES` - Comma-separated feature groups (default: `database,docs,development,functions`)
 - `MCP_READ_ONLY` - Enable read-only mode (default: `true`)
+- `MCP_PORT` - HTTP server port (default: `3000`)
 - `NODE_ENV` - Node environment (default: `production`)
+
+**Security configuration (Highly Recommended for Production):**
+
+- `MCP_API_KEYS` - Comma-separated API keys for authentication (e.g., `"key1,key2,key3"`)
+- `MCP_RATE_LIMIT_REQUESTS` - Max requests per 15 minutes for `/mcp` endpoint (default: `100`)
+- `MCP_RATE_LIMIT_GENERAL` - Max requests per minute for all endpoints (default: `60`)
+- `MCP_ALLOWED_ORIGINS` - Comma-separated allowed CORS origins (default: `"*"`, set to specific domains for security)
 
 ## Deployment Examples
 
@@ -69,12 +137,32 @@ Optional configuration:
 
 **Step 2: Configure Environment Variables**
 In Coolify dashboard, add these environment variables:
+
+**Required:**
 ```bash
 SUPABASE_ACCESS_TOKEN=sbp_1234567890abcdef... # Your Personal Access Token
 SUPABASE_PROJECT_REF=abcdefghijklmnop        # Your Project Reference
+```
+
+**Optional (with defaults):**
+```bash
 MCP_FEATURES=database,docs,development,functions
 MCP_READ_ONLY=true
+MCP_PORT=3000
 NODE_ENV=production
+```
+
+**Security (Highly Recommended):**
+```bash
+# Generate strong API keys for authentication
+MCP_API_KEYS="$(openssl rand -hex 32),$(openssl rand -hex 32)"
+
+# Rate limiting (conservative production values)
+MCP_RATE_LIMIT_REQUESTS=50
+MCP_RATE_LIMIT_GENERAL=30
+
+# CORS (restrict to your domains)
+MCP_ALLOWED_ORIGINS="https://yourdomain.com,https://app.yourdomain.com"
 ```
 
 **Step 3: Deploy Settings**
