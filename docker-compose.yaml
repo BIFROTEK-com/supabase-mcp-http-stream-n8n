@@ -14,7 +14,7 @@ services:
       # Optional: Read-only mode (true/false)
       - MCP_READ_ONLY=${MCP_READ_ONLY:-true}
       # Optional: Port for HTTP server
-      - MCP_PORT=${MCP_PORT:-3000}
+      - MCP_PORT=${MCP_PORT:-3333}
       # Optional: Node environment
       - NODE_ENV=${NODE_ENV:-production}
       # Security: API Keys for authentication (highly recommended)
@@ -25,11 +25,11 @@ services:
       # Security: CORS allowed origins
       - MCP_ALLOWED_ORIGINS=${MCP_ALLOWED_ORIGINS:-*}
     ports:
-      - "${MCP_PORT:-3000}:3000"
+      - "${MCP_PORT:-3333}:${MCP_PORT:-3333}"
     # Use HTTP server instead of STDIO
     command: ["npm", "start"]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:${MCP_PORT:-3333}/health"]
       interval: 30s
       timeout: 10s
       retries: 3

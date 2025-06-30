@@ -7,7 +7,7 @@ const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 
 const app = express();
-const port = process.env.MCP_PORT || 3000;
+const port = process.env.MCP_PORT || 3333;
 
 // Security: Basic hardening against script kiddies
 app.use(helmet({

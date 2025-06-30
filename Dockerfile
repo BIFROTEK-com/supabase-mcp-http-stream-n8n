@@ -51,7 +51,7 @@ EXPOSE 3000 3333
 
 # Set default environment variables
 ENV NODE_ENV=production
-ENV MCP_PORT=3000
+ENV MCP_PORT=3333
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs
@@ -60,7 +60,7 @@ USER mcp
 
 # Health check endpoint
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "const http = require('http'); const req = http.request({hostname: 'localhost', port: process.env.MCP_PORT || 3000, path: '/health', timeout: 2000}, (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }); req.on('error', () => process.exit(1)); req.end();" || exit 1
+  CMD node -e "const http = require('http'); const req = http.request({hostname: 'localhost', port: process.env.MCP_PORT || 3333, path: '/health', timeout: 2000}, (res) => { process.exit(res.statusCode === 200 ? 0 : 1); }); req.on('error', () => process.exit(1)); req.end();" || exit 1
 
 # Default command - HTTP server for multi-transport support
 CMD ["node", "mcp-http-server.js"] 
