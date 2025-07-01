@@ -1,4 +1,12 @@
 {
+  "name": "supabase-mcp-http-stream-n8n",
+  "version": "1.0.0",
+  "description": "One-Click Docker deployment of Supabase MCP Server with native HTTP Stream Transport support for n8n, AI Agents, and modern automation workflows",
+  "keywords": ["supabase", "mcp", "n8n", "http-stream", "docker", "ai", "automation"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BIFROTEK-com/supabase-mcp-http-stream-n8n.git"
+  },
   "workspaces": [
     "packages/*"
   ],

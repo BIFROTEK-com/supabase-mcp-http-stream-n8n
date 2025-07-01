@@ -1,1272 +1,403 @@
-# 🐳 **Standalone Dockerized Supabase MCP Server**
-## **Multi-Transport Support | Production Ready | Self-Hostable**
+# Supabase MCP HTTP Stream Server for n8n
 
-> **Host your own Supabase MCP server** with HTTP, SSE, and STDIO support for maximum compatibility with AI assistants, automation tools, and development environments.
+> **One-Click Docker deployment** of Supabase MCP Server with native **HTTP Stream Transport** support for n8n, AI Agents, and modern automation workflows.
 
 ![supabase-mcp-demo](https://github.com/user-attachments/assets/3fce101a-b7d4-482f-9182-0be70ed1ad56)
 
-## 🚀 **What This Provides**
+## 🚀 What This Provides
 
-This is a **standalone, self-hostable Docker container** that wraps the official Supabase MCP Server and exposes it through **multiple transport protocols**:
+This is a **production-ready Docker container** that hosts the official Supabase MCP Server with **HTTP Stream Transport** - the modern standard for connecting MCP servers to n8n and AI workflows.
 
-### **🔄 Multi-Transport Architecture**
-- **📡 HTTP/REST API** - For web applications and services
-- **🌊 Server-Sent Events (SSE)** - For real-time streaming (n8n, webhooks)
-- **🔌 STDIO** - For desktop AI assistants (Cursor, Claude Desktop, Windsurf)
-- **⚡ Streamable HTTP** - Latest MCP 2025 standard (Pipecat Cloud)
+### ✨ Key Features
 
-> **⚠️ SSE Transport Status:** The SSE transport for n8n integration is currently experiencing connection issues. While the implementation follows the MCP specification, n8n consistently drops connections after initialization. See [docs/n8n-sse-integration.md](docs/n8n-sse-integration.md) for details and debugging information. **Help and contributions are appreciated!** For now, please use the HTTP transport as an alternative.
+- **🔄 HTTP Stream Transport** - Native n8n support (MCP 2025 standard)
+- **🐳 One-Click Docker Deploy** - `docker-compose up` and you're running
+- **🔐 Production Security** - API keys, rate limiting, CORS protection
+- **📊 Health Monitoring** - Built-in health checks and status endpoints
+- **⚡ Multi-Client Support** - One server, multiple n8n workflows
+- **🛠 Complete Supabase API** - 50+ tools for database, auth, storage, functions
 
-### **🏗️ Deployment Benefits**
-- **🐳 One Docker container** - Deploy anywhere (Coolify, Railway, AWS, DigitalOcean)
-- **📦 Ready-to-use image** - Available on Docker Hub: `silverstar3o7/supabase-mcp-server`
-- **🔐 Built-in security** - API keys, rate limiting, CORS protection
-- **📊 Health monitoring** - Health checks and status endpoints
-- **⚙️ Environment-based config** - Easy customization via env vars
-- **🧪 Thoroughly tested** - 27 security tests ensure production readiness
+### 🎯 Perfect For
 
-### **🎯 Use Cases**
-- **Self-hosted AI infrastructure** for companies wanting data control
-- **Multi-client MCP access** - One server, multiple interfaces
-- **Production workflows** with n8n, Pipecat, or custom applications
-- **Development environments** with desktop AI assistants
+- **🤖 n8n Automation** - Native HTTP streaming, no SSE headaches
+- **🏭 Production Teams** - Self-hosted, secure, scalable
+- **🔧 AI Development** - Pipecat, custom agents, LLM workflows
+- **📈 Enterprise** - Data control, compliance, custom deployment
 
 ---
 
-The [Model Context Protocol](https://modelcontextprotocol.io/introduction) (MCP) standardizes how Large Language Models (LLMs) talk to external services like Supabase. This Docker container hosts that connection, allowing AI assistants to manage tables, fetch config, and query data. See the [full list of tools](#tools).
+## 🚀 Quick Start
 
-> **🤖 AI-Generated Code Notice:** This project was programmed with Claude 4.0 Sonnet and includes comprehensive security testing. While extensively tested, AI-generated code may contain errors or oversights. Please review thoroughly before production use.
-
-## ⚠️ **Disclaimer**
-
-This is AI-generated software. While we've implemented extensive security testing and best practices:
-
-- **Review the code** before deploying to production
-- **Test thoroughly** in your environment  
-- **Use API keys** in production (see Security section)
-- **Monitor logs** for unusual activity
-- **Keep dependencies updated**
-
-Use at your own risk. No warranty is provided.
-
-## 🚀 **Deploy Your Standalone MCP Server**
-
-### **1️⃣ Quick Docker Start (2 Options)**
-
-**Option A: Pre-built Image (Fastest - No Building Required)**
+### 1️⃣ One-Click Docker Deploy
 
 ```bash
-# Download configuration files
-curl -O https://raw.githubusercontent.com/Silverstar187/supabase-mcp-docker/main/docker-compose.simple.yaml
-curl -O https://raw.githubusercontent.com/Silverstar187/supabase-mcp-docker/main/env.example
+# Option A: Use pre-built image (fastest)
+curl -O https://raw.githubusercontent.com/BIFROTEK-com/supabase-mcp-http-stream-n8n/main/docker-compose.simple.yaml
+curl -O https://raw.githubusercontent.com/BIFROTEK-com/supabase-mcp-http-stream-n8n/main/env.example
+
+# Option B: Clone for full control
+git clone https://github.com/BIFROTEK-com/supabase-mcp-http-stream-n8n.git
+cd supabase-mcp-http-stream-n8n
 ```
 
-**Option B: Clone Repository (Full Control)**
+### 2️⃣ Configure Environment
 
-```bash
-git clone https://github.com/Silverstar187/supabase-mcp-docker.git
-cd supabase-mcp-docker
-```
-
-### **2️⃣ Set up environment variables:**
 ```bash
 cp env.example .env
-# Edit .env with your Supabase credentials and security settings
+# Edit .env with your Supabase credentials
 ```
 
-**Minimum required configuration:**
+**Minimum Configuration:**
 ```bash
 SUPABASE_ACCESS_TOKEN=sbp_your_token_here
 SUPABASE_PROJECT_REF=your_project_ref_here
 ```
 
-**For production, enable security (recommended):**
+**Production Security (Recommended):**
 ```bash
 MCP_API_KEYS="your-secret-key-1,your-secret-key-2"
 MCP_ALLOWED_ORIGINS="https://yourdomain.com"
 MCP_RATE_LIMIT_REQUESTS=50
 ```
 
-### **3️⃣ Launch Multi-Transport Server:**
+### 3️⃣ Start Server
 
-**Option A: Using Pre-built Image**
 ```bash
+# Option A: Pre-built image
 docker-compose -f docker-compose.simple.yaml up -d
-```
 
-**Option B: Build from Source**
-```bash
+# Option B: Build from source
 docker-compose up --build
 ```
 
-**✅ Your standalone server now provides:**
-- **📡 HTTP API:** `http://localhost:3333/mcp`
-- **🌊 SSE Stream:** `http://localhost:3333/sse`
-- **📊 Health Check:** `http://localhost:3333/health`
-- **🔌 STDIO:** Direct connection for AI assistants
-
-### **4️⃣ Test All Interfaces:**
+### 4️⃣ Test Your Server
 
 ```bash
-# Test HTTP/JSON-RPC API
+# Test HTTP Stream endpoint
 curl -X POST http://localhost:3333/mcp \
   -H "Content-Type: application/json" \
   -H "X-API-Key: your-secret-key-1" \
   -d '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}'
 
-# Test SSE Stream (great for n8n, automation)
-curl -H "X-API-Key: your-secret-key-1" http://localhost:3333/sse
-
-# Test Health (no auth required)
+# Check health
 curl http://localhost:3333/health
 ```
 
-### Environment Variables
-
-**Required configuration:**
-
-- `SUPABASE_ACCESS_TOKEN` - Your Supabase Personal Access Token ([Get it here](https://supabase.com/dashboard/account/tokens))
-- `SUPABASE_PROJECT_REF` - Your Supabase Project ID (found in Project Settings → General)
-
-**Optional configuration:**
-
-- `MCP_FEATURES` - Comma-separated feature groups (default: `database,docs,development,functions`)
-- `MCP_READ_ONLY` - Enable read-only mode (default: `true`)
-- `MCP_PORT` - HTTP server port (default: `3333`)
-- `NODE_ENV` - Node environment (default: `production`)
-
-**Security configuration (Highly Recommended for Production):**
-
-- `MCP_API_KEYS` - Comma-separated API keys for authentication (e.g., `"key1,key2,key3"`)
-- `MCP_RATE_LIMIT_REQUESTS` - Max requests per 15 minutes for `/mcp` endpoint (default: `100`)
-- `MCP_RATE_LIMIT_GENERAL` - Max requests per minute for all endpoints (default: `60`)
-- `MCP_ALLOWED_ORIGINS` - Comma-separated allowed CORS origins (default: `"*"`, set to specific domains for security)
-
-**Deployment configuration:**
-
-- `DOMAIN` - Your domain name for Traefik routing and SSL certificates (required for Coolify deployment)
-
-
-
-## Deployment Examples
-
-### Deploy to Coolify
-
-**Step 1: Create Application in Coolify**
-1. Login to your Coolify dashboard
-2. Go to "Projects" → "New" → "Public Repository"
-3. Enter repository URL: `https://github.com/Silverstar187/supabase-mcp-docker.git`
-4. Select branch: `main`
-5. Choose "Dockerfile" as build pack
-
-**Step 2: Configure Environment Variables**
-In Coolify dashboard, add these environment variables:
-
-**Required:**
-```bash
-SUPABASE_ACCESS_TOKEN=sbp_1234567890abcdef... # Your Personal Access Token
-SUPABASE_PROJECT_REF=abcdefghijklmnop        # Your Project Reference
-```
-
-**Optional (with defaults):**
-```bash
-MCP_FEATURES=database,docs,development,functions
-MCP_READ_ONLY=true
-MCP_PORT=3333
-NODE_ENV=production
-```
-
-**Security (Highly Recommended):**
-```bash
-# Generate strong API keys for authentication
-MCP_API_KEYS="$(openssl rand -hex 32),$(openssl rand -hex 32)"
-
-# Rate limiting (conservative production values)
-MCP_RATE_LIMIT_REQUESTS=50
-MCP_RATE_LIMIT_GENERAL=30
-
-# CORS (restrict to your domains)
-MCP_ALLOWED_ORIGINS="https://yourdomain.com,https://app.yourdomain.com"
-
-# Deployment configuration (required for Coolify)
-DOMAIN=your-domain.com
-
-```
-
-**Step 3: Deploy Settings**
-- **Build Command:** `npm run build`
-- **Start Command:** `node packages/mcp-server-supabase/dist/transports/stdio.js --project-ref=$SUPABASE_PROJECT_REF --read-only --features=$MCP_FEATURES`
-- **Port:** `3333` (for health checks)
-- **Deploy:** Click "Deploy" button
-
-**Step 4: Get Server URL**
-After deployment, note your server URL: `https://your-app.coolify.domain.com`
-
-### Integration with n8n
-
-**Option 1: Native MCP Client (Recommended)**
-
-Install n8n MCP node:
-```bash
-npm install n8n-nodes-mcp
-```
-
-Configure MCP Client node:
-```json
-{
-  "nodes": [
-    {
-      "parameters": {
-        "endpoint": "https://your-domain.com/mcp",
-        "protocol": "sse",
-        "method": "tools/call",
-        "tool": "execute_sql",
-        "arguments": {
-          "sql": "SELECT * FROM todos ORDER BY created_at DESC LIMIT 5;"
-        }
-      },
-      "type": "n8n-nodes-mcp.mcpClient",
-      "position": [380, 240],
-      "name": "Supabase MCP Client"
-    }
-  ]
-}
-```
-
-**Option 2: HTTP Request Node (Alternative)**
-```json
-{
-  "parameters": {
-            "url": "https://your-domain.com/mcp",
-    "method": "POST",
-    "options": {
-      "headers": {
-        "Content-Type": "application/json"
-      },
-      "body": {
-        "jsonrpc": "2.0",
-        "id": 1,
-        "method": "tools/call",
-        "params": {
-          "name": "execute_sql",
-          "arguments": {
-            "sql": "SELECT COUNT(*) FROM todos;"
-          }
-        }
-      }
-    }
-  },
-  "type": "n8n-nodes-base.httpRequest",
-  "name": "Supabase HTTP Request"
-}
-```
-
-**Example Workflow: Sync Data**
-```json
-{
-  "name": "Supabase Data Sync",
-  "nodes": [
-    {
-      "parameters": {},
-      "type": "n8n-nodes-base.start",
-      "position": [240, 300],
-      "name": "Start"
-    },
-    {
-      "parameters": {
-        "command": "echo '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"list_tables\"}}' | docker run --rm -i -e SUPABASE_ACCESS_TOKEN='{{ $env.SUPABASE_TOKEN }}' your-mcp-image node packages/mcp-server-supabase/dist/transports/stdio.js --project-ref={{ $env.PROJECT_REF }} --read-only"
-      },
-      "type": "n8n-nodes-base.executeCommand",
-      "position": [380, 300],
-      "name": "Get Tables"
-    }
-  ],
-  "connections": {
-    "Start": {
-      "main": [
-        [
-          {
-            "node": "Get Tables",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    }
-  }
-}
-```
-
-### Integration with Pipecat
-
-### Pipecat Cloud Integration
-
-For Pipecat voicebots, use **STDIO subprocess integration** (not HTTP):
-
-#### Option 1: Direct STDIO Integration
-
-```python
-import subprocess
-import json
-import asyncio
-from pipecat.pipeline.pipeline import Pipeline
-from pipecat.services.elevenlabs import ElevenLabsTTSService
-from pipecat.services.openai import OpenAILLMService
-
-class SupabaseMCPService:
-    def __init__(self, project_ref: str, access_token: str):
-        self.project_ref = project_ref
-        self.access_token = access_token
-        self.process = None
-        
-    async def start(self):
-        """Start the MCP server process"""
-        self.process = subprocess.Popen([
-            'node', 
-            'packages/mcp-server-supabase/dist/transports/stdio.js',
-            f'--project-ref={self.project_ref}',
-            '--read-only',
-            '--features=database,docs,development,functions'
-        ], 
-        stdin=subprocess.PIPE, 
-        stdout=subprocess.PIPE, 
-        stderr=subprocess.PIPE,
-        env={'SUPABASE_ACCESS_TOKEN': self.access_token}
-        )
-        
-    async def call_tool(self, tool_name: str, arguments: dict = None) -> dict:
-        """Call a Supabase MCP tool"""
-        request = {
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": "tools/call",
-            "params": {
-                "name": tool_name,
-                "arguments": arguments or {}
-            }
-        }
-        
-        # Send request via STDIO
-        request_json = json.dumps(request) + '\n'
-        self.process.stdin.write(request_json.encode())
-        self.process.stdin.flush()
-        
-        # Read response via STDIO
-        response_line = self.process.stdout.readline()
-        return json.loads(response_line.decode())
-    
-    async def stop(self):
-        """Stop the MCP server process"""
-        if self.process:
-            self.process.terminate()
-            self.process.wait()
-
-# Usage in Pipecat Pipeline
-async def main():
-    # Initialize services
-    llm = OpenAILLMService(api_key="your-openai-key")
-    tts = ElevenLabsTTSService(api_key="your-elevenlabs-key")
-    supabase_mcp = SupabaseMCPService(
-        project_ref="your_project_ref",
-        access_token="your_supabase_token"
-    )
-    
-    # Start MCP server subprocess
-    await supabase_mcp.start()
-    
-    # Use in pipeline...
-    try:
-        result = await supabase_mcp.call_tool("execute_sql", {
-            "sql": "SELECT COUNT(*) FROM todos;"
-        })
-        print("SQL Result:", result)
-    finally:
-        await supabase_mcp.stop()
-
-#### Option 2: Use Pipecat's MCP Extension
-
-Install Pipecat with MCP support:
-```bash
-pip install "pipecat-ai[mcp]"
-```
-
-Then use built-in MCP integration:
-```python
-from pipecat.services.mcp import MCPService
-
-# Pipecat handles the subprocess management
-mcp_service = MCPService(
-    command="node",
-    args=[
-        "packages/mcp-server-supabase/dist/transports/stdio.js",
-        "--project-ref=your_project_ref",
-        "--read-only"
-    ],
-    env={"SUPABASE_ACCESS_TOKEN": "your_token"}
-)
-```
-
-#### Option 3: HTTP Fallback (if STDIO not available)
-
-For cloud deployments where subprocess isn't available:
-
-```python
-import requests
-
-# Health check
-response = requests.get("https://your-domain.com/health")
-print(response.json())
-
-# Execute SQL
-response = requests.post("https://your-domain.com/sql", json={
-    "sql": "SELECT count(*) FROM todos;"
-})
-print(response.json())
-
-# List available tools
-response = requests.get("https://your-domain.com/tools")
-print(response.json())
-```
-
-## Prerequisites
-
-You will need Node.js installed on your machine. You can check this by running:
-
-```shell
-node -v
-```
-
-If you don't have Node.js installed, you can download it from [nodejs.org](https://nodejs.org/).
-
-## Setup
-
-### 1. Personal access token (PAT)
-
-First, go to your [Supabase settings](https://supabase.com/dashboard/account/tokens) and create a personal access token. Give it a name that describes its purpose, like "Cursor MCP Server".
-
-This will be used to authenticate the MCP server with your Supabase account. Make sure to copy the token, as you won't be able to see it again.
-
-### 2. Configure MCP client
-
-Next, configure your MCP client (such as Cursor) to use this server. Most MCP clients store the configuration as JSON in the following format:
-
-```json
-{
-  "mcpServers": {
-    "supabase": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@supabase/mcp-server-supabase@latest",
-        "--read-only",
-        "--project-ref=<project-ref>"
-      ],
-      "env": {
-        "SUPABASE_ACCESS_TOKEN": "<personal-access-token>"
-      }
-    }
-  }
-}
-```
-
-Replace `<personal-access-token>` with the token you created in step 1. Alternatively you can omit `SUPABASE_ACCESS_TOKEN` in this config and instead set it globally on your machine. This allows you to keep your token out of version control if you plan on committing this configuration to a repository.
-
-The following options are available:
-
-- `--read-only`: Used to restrict the server to read-only queries. Recommended by default. See [read-only mode](#read-only-mode).
-- `--project-ref`: Used to scope the server to a specific project. Recommended by default. If you omit this, the server will have access to all projects in your Supabase account. See [project scoped mode](#project-scoped-mode).
-- `--features`: Used to specify which tool groups to enable. See [feature groups](#feature-groups).
-
-If you are on Windows, you will need to [prefix the command](#windows). If your MCP client doesn't accept JSON, the direct CLI command is:
-
-```shell
-npx -y @supabase/mcp-server-supabase@latest --read-only --project-ref=<project-ref>
-```
-
-> Note: Do not run this command directly - this is meant to be executed by your MCP client in order to start the server. `npx` automatically downloads the latest version of the MCP server from `npm` and runs it in a single command.
-
-#### Windows
-
-On Windows, you will need to prefix the command with `cmd /c`:
-
-```json
-{
-  "mcpServers": {
-    "supabase": {
-      "command": "cmd",
-      "args": [
-        "/c",
-        "npx",
-        "-y",
-        "@supabase/mcp-server-supabase@latest",
-        "--read-only",
-        "--project-ref=<project-ref>"
-      ],
-      "env": {
-        "SUPABASE_ACCESS_TOKEN": "<personal-access-token>"
-      }
-    }
-  }
-}
-```
-
-or with `wsl` if you are running Node.js inside WSL:
-
-```json
-{
-  "mcpServers": {
-    "supabase": {
-      "command": "wsl",
-      "args": [
-        "npx",
-        "-y",
-        "@supabase/mcp-server-supabase@latest",
-        "--read-only",
-        "--project-ref=<project-ref>"
-      ],
-      "env": {
-        "SUPABASE_ACCESS_TOKEN": "<personal-access-token>"
-      }
-    }
-  }
-}
-```
-
-Make sure Node.js is available in your system `PATH` environment variable. If you are running Node.js natively on Windows, you can set this by running the following commands in your terminal.
-
-1. Get the path to `npm`:
-
-   ```shell
-   npm config get prefix
-   ```
-
-2. Add the directory to your PATH:
-
-   ```shell
-   setx PATH "%PATH%;<path-to-dir>"
-   ```
-
-3. Restart your MCP client.
-
-### Project scoped mode
-
-Without project scoping, the MCP server will have access to all organizations and projects in your Supabase account. We recommend you restrict the server to a specific project by setting the `--project-ref` flag on the CLI command:
-
-```shell
-npx -y @supabase/mcp-server-supabase@latest --project-ref=<project-ref>
-```
-
-Replace `<project-ref>` with the ID of your project. You can find this under **Project ID** in your Supabase [project settings](https://supabase.com/dashboard/project/_/settings/general).
-
-After scoping the server to a project, [account-level](#project-management) tools like `list_projects` and `list_organizations` will no longer be available. The server will only have access to the specified project and its resources.
-
-### Read-only mode
-
-To restrict the Supabase MCP server to read-only queries, set the `--read-only` flag on the CLI command:
-
-```shell
-npx -y @supabase/mcp-server-supabase@latest --read-only
-```
-
-We recommend you enable this by default. This prevents write operations on any of your databases by executing SQL as a read-only Postgres user. Note that this flag only applies to database tools (`execute_sql` and `apply_migration`) and not to other tools like `create_project` or `create_branch`.
-
-### Feature groups
-
-You can enable or disable specific tool groups by passing the `--features` flag to the MCP server. This allows you to customize which tools are available to the LLM. For example, to enable only the [database](#database) and [docs](#knowledge-base) tools, you would run:
-
-```shell
-npx -y @supabase/mcp-server-supabase@latest --features=database,docs
-```
-
-Available groups are: [`account`](#account), [`docs`](#knowledge-base), [`database`](#database), [`debug`](#debug), [`development`](#development), [`functions`](#edge-functions), [`storage`](#storage), and [`branching`](#branching-experimental-requires-a-paid-plan).
-
-If this flag is not passed, the default feature groups are: `account`, `database`, `debug`, `development`, `docs`, `functions`, and `branching`.
-
-## Tools
-
-_**Note:** This server is pre-1.0, so expect some breaking changes between versions. Since LLMs will automatically adapt to the tools available, this shouldn't affect most users._
-
-The following Supabase tools are available to the LLM, [grouped by feature](#feature-groups).
-
-#### Account
-
-Enabled by default when no `--project-ref` is passed. Use `account` to target this group of tools with the [`--features`](#feature-groups) option.
-
-_**Note:** these tools will be unavailable if the server is [scoped to a project](#project-scoped-mode)._
-
-- `list_projects`: Lists all Supabase projects for the user.
-- `get_project`: Gets details for a project.
-- `create_project`: Creates a new Supabase project.
-- `pause_project`: Pauses a project.
-- `restore_project`: Restores a project.
-- `list_organizations`: Lists all organizations that the user is a member of.
-- `get_organization`: Gets details for an organization.
-- `get_cost`: Gets the cost of a new project or branch for an organization.
-- `confirm_cost`: Confirms the user's understanding of new project or branch costs. This is required to create a new project or branch.
-
-#### Knowledge Base
-
-Enabled by default. Use `docs` to target this group of tools with the [`--features`](#feature-groups) option.
-
-- `search_docs`: Searches the Supabase documentation for up-to-date information. LLMs can use this to find answers to questions or learn how to use specific features.
-
-#### Database
-
-Enabled by default. Use `database` to target this group of tools with the [`--features`](#feature-groups) option.
-
-- `list_tables`: Lists all tables within the specified schemas.
-- `list_extensions`: Lists all extensions in the database.
-- `list_migrations`: Lists all migrations in the database.
-- `apply_migration`: Applies a SQL migration to the database. SQL passed to this tool will be tracked within the database, so LLMs should use this for DDL operations (schema changes).
-- `execute_sql`: Executes raw SQL in the database. LLMs should use this for regular queries that don't change the schema.
-
-#### Debug
-
-Enabled by default. Use `debug` to target this group of tools with the [`--features`](#feature-groups) option.
-
-- `get_logs`: Gets logs for a Supabase project by service type (api, postgres, edge functions, auth, storage, realtime). LLMs can use this to help with debugging and monitoring service performance.
-- `get_advisors`: Gets a list of advisory notices for a Supabase project. LLMs can use this to check for security vulnerabilities or performance issues.
-
-#### Development
-
-Enabled by default. Use `development` to target this group of tools with the [`--features`](#feature-groups) option.
-
-- `get_project_url`: Gets the API URL for a project.
-- `get_anon_key`: Gets the anonymous API key for a project.
-- `generate_typescript_types`: Generates TypeScript types based on the database schema. LLMs can save this to a file and use it in their code.
-
-#### Edge Functions
-
-Enabled by default. Use `functions` to target this group of tools with the [`--features`](#feature-groups) option.
-
-- `list_edge_functions`: Lists all Edge Functions in a Supabase project.
-- `deploy_edge_function`: Deploys a new Edge Function to a Supabase project. LLMs can use this to deploy new functions or update existing ones.
-
-#### Branching (Experimental, requires a paid plan)
-
-Enabled by default. Use `branching` to target this group of tools with the [`--features`](#feature-groups) option.
-
-- `create_branch`: Creates a development branch with migrations from production branch.
-- `list_branches`: Lists all development branches.
-- `delete_branch`: Deletes a development branch.
-- `merge_branch`: Merges migrations and edge functions from a development branch to production.
-- `reset_branch`: Resets migrations of a development branch to a prior version.
-- `rebase_branch`: Rebases development branch on production to handle migration drift.
-
-#### Storage
-
-Disabled by default to reduce tool count. Use `storage` to target this group of tools with the [`--features`](#feature-groups) option.
-
-- `list_storage_buckets`: Lists all storage buckets in a Supabase project.
-- `get_storage_config`: Gets the storage config for a Supabase project.
-- `update_storage_config`: Updates the storage config for a Supabase project (requires a paid plan).
-
-## Other MCP servers
-
-### `@supabase/mcp-server-postgrest`
-
-The PostgREST MCP server allows you to connect your own users to your app via REST API. See more details on its [project README](./packages/mcp-server-postgrest).
-
-## Resources
-
-- [**Model Context Protocol**](https://modelcontextprotocol.io/introduction): Learn more about MCP and its capabilities.
-- [**From development to production**](/docs/production.md): Learn how to safely promote changes to production environments.
-
-## For developers
-
-This repo uses npm for package management, and the latest LTS version of Node.js.
-
-Clone the repo and run:
-
-```
-npm install --ignore-scripts
-```
-
-> [!NOTE]
-> On recent versions of MacOS, you may have trouble installing the `libpg-query` transient dependency without the `--ignore-scripts` flag.
-
-## License
-
-This project is licensed under Apache 2.0. See the [LICENSE](./LICENSE) file for details.
-
-## 🔄 **Integration Guide - Transport Protocols**
-
-This MCP server supports **3 different transport protocols** depending on your use case. Choose the right one for your application:
-
-### 📋 **Quick Reference**
-
-| Transport | Use Case | Accept Header | Endpoint |
-|-----------|----------|---------------|----------|
-| **Streamable HTTP** | Pipecat Cloud, Modern APIs | `application/json` | `POST /mcp` |
-| **SSE** | n8n MCP Client | `text/event-stream` | `POST /mcp` |
-| **STDIO** | Desktop Apps | N/A | Direct subprocess |
+**✅ Your server is now ready for n8n!**
 
 ---
 
-## 🚀 **1. Streamable HTTP Transport (MCP 2025 Standard)**
+## 🔌 n8n Integration
 
-**Perfect for:** Pipecat Cloud, modern cloud services, HTTP-based integrations
+### Using with n8n MCP Client Node
 
-### **Basic Request**
-```bash
-curl -X POST https://your-domain.com/mcp \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json" \
-  -H "Mcp-Session-Id: your-session-123" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": "request-1",
-    "method": "tools/list",
-    "params": {}
-  }'
-```
-
-### **Pipecat Cloud Integration**
-```python
-import aiohttp
-import json
-
-class SupabaseMCPClient:
-    def __init__(self, base_url: str):
-        self.base_url = f"{base_url}/mcp"
-        self.session_id = f"pipecat-{uuid.uuid4()}"
-    
-    async def call_tool(self, tool_name: str, arguments: dict):
-        async with aiohttp.ClientSession() as session:
-            payload = {
-                "jsonrpc": "2.0",
-                "id": f"tool-{int(time.time())}",
-                "method": "tools/call",
-                "params": {
-                    "name": tool_name,
-                    "arguments": arguments
-                }
-            }
-            
-            headers = {
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-                "Mcp-Session-Id": self.session_id
-            }
-            
-            async with session.post(self.base_url, json=payload, headers=headers) as resp:
-                result = await resp.json()
-                return result["result"]
-
-# Usage in Pipecat Pipeline
-mcp_client = SupabaseMCPClient("https://your-coolify-domain.com")
-
-# List all tables
-tables = await mcp_client.call_tool("list_tables", {"schemas": ["public"]})
-
-# Execute SQL query
-data = await mcp_client.call_tool("execute_sql", {
-    "query": "SELECT * FROM profiles WHERE user_id = $1 LIMIT 1",
-    "params": ["user-uuid-here"]
-})
-```
-
-### **Available Tools**
-- `list_tables` - List database tables
-- `execute_sql` - Run SQL queries
-- `list_extensions` - List PostgreSQL extensions
-- `get_project_url` - Get Supabase project URL
-- `get_anon_key` - Get anonymous API key
-- `search_docs` - Search Supabase documentation
-- `list_edge_functions` - List Edge Functions
-- `deploy_edge_function` - Deploy Edge Functions
-
----
-
-## 📡 **2. SSE Transport (Server-Sent Events)**
-
-**Perfect for:** n8n MCP Client integration, real-time applications
-
-### **n8n MCP Client Setup**
-
-1. **Install n8n MCP Client Node**
+1. **Install the MCP Client Node** in your n8n instance:
    ```bash
    npm install n8n-nodes-mcp
    ```
 
-2. **Add MCP Client Node to Workflow**
-   - Node Type: `MCP Client`
-   - Endpoint URL: `https://your-coolify-domain.com/mcp`
-   - Transport: `SSE (Server-Sent Events)`
-   - Authentication: None (or API key if secured)
+2. **Configure HTTP Stream Credentials** in n8n:
+   - Connection Type: `HTTP Streamable`
+   - Base URL: `http://your-server:3333/mcp`
+   - API Key: `your-secret-key-1`
 
-3. **Example n8n Workflow Configuration**
-   ```json
-   {
-     "nodes": [
-       {
-         "parameters": {
-           "endpoint": "https://your-coolify-domain.com/mcp",
-           "transport": "sse",
-           "tool": "list_tables",
-           "arguments": {
-             "schemas": ["public"]
-           }
-         },
-         "type": "n8n-nodes-mcp.mcpClient",
-         "name": "Get Supabase Tables"
-       }
-     ]
-   }
-   ```
+3. **Create Your First Workflow**:
+   - Add an MCP Client node
+   - Set Connection Type to `HTTP Streamable`
+   - Select your credentials
+   - Choose operation: `List Tools`
+   - Execute to see all 50+ Supabase tools
 
-### **Manual SSE Connection**
-```bash
-# Connect to SSE endpoint
-curl -X POST https://your-domain.com/mcp \
-  -H "Content-Type: application/json" \
-  -H "Accept: text/event-stream" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": "sse-request",
-    "method": "tools/list",
-    "params": {}
-  }'
+![n8n MCP Client Configuration](https://github.com/user-attachments/assets/example-config-screenshot)
 
-# Expected SSE Response:
-# data: {"type":"connection","sessionId":"session-1","message":"Connected to MCP server"}
-# data: {"result":{"tools":[...]},"jsonrpc":"2.0","id":"sse-request"}
-```
-
-### **JavaScript SSE Client**
-```javascript
-// For web applications
-const eventSource = new EventSource('/mcp');
-
-eventSource.onmessage = function(event) {
-    const data = JSON.parse(event.data);
-    console.log('MCP Response:', data);
-};
-
-// Send MCP request
-fetch('/mcp', {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'text/event-stream'
-    },
-    body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: "web-request",
-        method: "tools/list",
-        params: {}
-    })
-});
-```
-
----
-
-## 💻 **3. STDIO Transport (Native Desktop)**
-
-**Perfect for:** Cursor, Windsurf, Claude Desktop, local development
-
-### **Claude Desktop Configuration**
-Add to your `claude_desktop_config.json`:
+### Example: Database Operations in n8n
 
 ```json
 {
-  "mcpServers": {
-    "supabase": {
-      "command": "node",
-      "args": [
-        "/path/to/packages/mcp-server-supabase/dist/transports/stdio.js",
-        "--project-ref=your_project_ref",
-        "--access-token=your_access_token"
-      ],
-      "env": {
-        "SUPABASE_PROJECT_REF": "your_project_ref",
-        "SUPABASE_ACCESS_TOKEN": "your_access_token"
-      }
-    }
+  "operation": "Execute Tool",
+  "tool": "execute_sql",
+  "parameters": {
+    "query": "SELECT * FROM users WHERE created_at > NOW() - INTERVAL '24 hours'"
   }
 }
 ```
 
-### **Cursor/Windsurf Integration**
-1. Install the MCP extension for your editor
-2. Add server configuration:
-   ```json
-   {
-     "mcp": {
-       "servers": {
-         "supabase": {
-           "command": "node",
-           "args": [
-             "packages/mcp-server-supabase/dist/transports/stdio.js"
-           ],
-           "env": {
-             "SUPABASE_PROJECT_REF": "your_project_ref",
-             "SUPABASE_ACCESS_TOKEN": "your_access_token"
-           }
-         }
-       }
-     }
-   }
+### Example: Project Management Workflow
+
+1. **List Projects** - See all your Supabase projects
+2. **Get Project Details** - Fetch configuration and status
+3. **Execute SQL** - Run queries on your database
+4. **Deploy Functions** - Update Edge Functions from n8n
+
+---
+
+## 🛠 Available Tools
+
+The server provides 50+ tools organized into feature groups:
+
+### 📊 Database Operations
+- `execute_sql` - Run SQL queries
+- `apply_migration` - Apply database migrations  
+- `list_tables` - Get table schemas
+- `list_extensions` - View installed extensions
+
+### 🏗 Project Management
+- `list_projects` - List all projects
+- `get_project` - Get project details
+- `create_project` - Create new projects
+- `pause_project` / `restore_project` - Manage project lifecycle
+
+### 🌿 Branching & Development
+- `create_branch` - Create development branches
+- `list_branches` - View all branches
+- `merge_branch` - Merge to production
+- `reset_branch` / `rebase_branch` - Branch management
+
+### ⚡ Edge Functions
+- `list_edge_functions` - View deployed functions
+- `deploy_edge_function` - Deploy new functions
+
+### 📚 Documentation & Support
+- `search_docs` - Search Supabase documentation
+- `get_advisors` - Get security/performance recommendations
+- `get_logs` - Fetch project logs
+
+### 🔧 Development Tools
+- `generate_typescript_types` - Generate types for your database
+- `get_project_url` / `get_anon_key` - Get connection details
+
+> **Feature Groups**: Control which tools are available using `MCP_FEATURES=database,docs,development,functions`
+
+---
+
+## 🐳 Deployment Options
+
+### Deploy to Coolify
+
+1. **Create Application** in Coolify dashboard
+2. **Repository**: `https://github.com/BIFROTEK-com/supabase-mcp-http-stream-n8n.git`
+3. **Build Pack**: Dockerfile
+4. **Environment Variables**:
+   ```bash
+   SUPABASE_ACCESS_TOKEN=sbp_your_token
+   SUPABASE_PROJECT_REF=your_project_ref
+   MCP_API_KEYS="$(openssl rand -hex 32)"
+   DOMAIN=your-domain.com
    ```
+5. **Deploy** and access at `https://your-domain.com/mcp`
 
-### **Direct STDIO Usage**
+### Deploy to Railway
+
 ```bash
-# Start MCP server directly
-node packages/mcp-server-supabase/dist/transports/stdio.js \
-  --project-ref=your_project_ref \
-  --access-token=your_access_token
-
-# Send JSON-RPC over STDIN
-echo '{"jsonrpc":"2.0","id":"1","method":"tools/list","params":{}}' | \
-node packages/mcp-server-supabase/dist/transports/stdio.js \
-  --project-ref=your_project_ref \
-  --access-token=your_access_token
+# One-click deploy button
 ```
 
-### **Python Subprocess Integration**
-```python
-import subprocess
-import json
+### Deploy to DigitalOcean
 
-class MCPSubprocess:
-    def __init__(self, project_ref: str, access_token: str):
-        self.process = subprocess.Popen([
-            'node', 
-            'packages/mcp-server-supabase/dist/transports/stdio.js',
-            f'--project-ref={project_ref}',
-            f'--access-token={access_token}'
-        ], 
-        stdin=subprocess.PIPE, 
-        stdout=subprocess.PIPE, 
-        stderr=subprocess.PIPE,
-        text=True)
-    
-    def call_tool(self, method: str, params: dict = None):
-        request = {
-            "jsonrpc": "2.0",
-            "id": "python-request",
-            "method": method,
-            "params": params or {}
-        }
-        
-        self.process.stdin.write(json.dumps(request) + '\n')
-        self.process.stdin.flush()
-        
-        response_line = self.process.stdout.readline()
-        return json.loads(response_line)
-
-# Usage
-mcp = MCPSubprocess("your_project_ref", "your_access_token")
-tables = mcp.call_tool("tools/call", {
-    "name": "list_tables",
-    "arguments": {"schemas": ["public"]}
-})
+```bash
+# Docker droplet with docker-compose
 ```
 
 ---
 
-## ⚙️ **Environment Variables**
+## ⚙️ Configuration
 
-All transports use the same environment variables:
+### Environment Variables
+
+**Required:**
+- `SUPABASE_ACCESS_TOKEN` - Your [Supabase Personal Access Token](https://supabase.com/dashboard/account/tokens)
+- `SUPABASE_PROJECT_REF` - Your Project ID from Project Settings
+
+**Security (Production):**
+- `MCP_API_KEYS` - Comma-separated API keys for authentication
+- `MCP_RATE_LIMIT_REQUESTS` - Requests per 15 minutes (default: 100)
+- `MCP_ALLOWED_ORIGINS` - CORS origins (default: "*")
+
+**Features:**
+- `MCP_FEATURES` - Feature groups: `database,docs,development,functions`
+- `MCP_READ_ONLY` - Read-only mode (default: true)
+- `MCP_PORT` - Server port (default: 3333)
+
+### Feature Groups
+
+Control available tools by setting `MCP_FEATURES`:
 
 ```bash
-# Required
-SUPABASE_PROJECT_REF=your_project_reference_id
-SUPABASE_ACCESS_TOKEN=your_personal_access_token
+# Only database operations
+MCP_FEATURES=database
 
-# Optional
-MCP_FEATURES=database,docs,development,functions  # Default: all features
-MCP_READ_ONLY=true                                # Default: true (safe mode)
-MCP_PORT=3000                                     # HTTP server port (Streamable HTTP + SSE only)
+# Database + documentation
+MCP_FEATURES=database,docs
+
+# All features (default)
+MCP_FEATURES=database,docs,development,functions
 ```
 
 ---
 
-## 🔍 **Testing Your Integration**
+## 🔒 Security
 
-### **Health Check**
+### Production Security Checklist
+
+- ✅ **Set API Keys**: `MCP_API_KEYS="strong-key-1,strong-key-2"`
+- ✅ **Enable CORS**: `MCP_ALLOWED_ORIGINS="https://yourdomain.com"`
+- ✅ **Rate Limiting**: `MCP_RATE_LIMIT_REQUESTS=50`
+- ✅ **Read-Only Mode**: `MCP_READ_ONLY=true` (for most use cases)
+- ✅ **HTTPS**: Use reverse proxy with SSL certificates
+- ✅ **Monitor Logs**: Watch for unusual activity
+
+### API Authentication
+
+Include your API key in all requests:
+
 ```bash
-curl https://your-domain.com/health
-# Expected: {"status":"ok","mcpReady":true,"timestamp":"..."}
+# HTTP Header
+curl -H "X-API-Key: your-secret-key" http://localhost:3333/mcp
+
+# Query Parameter (less secure)
+curl "http://localhost:3333/mcp?api_key=your-secret-key"
 ```
 
-### **MCP Status**
+---
+
+## 🧪 Testing
+
+### Run Security Tests
+
 ```bash
-curl https://your-domain.com/mcp/status
-# Expected: {"protocol":"mcp","version":"2024-11-05","transports":["streamable-http","sse"],...}
+npm run test
+# 27 security tests covering authentication, rate limiting, CORS, etc.
 ```
 
-### **List Available Tools**
+### Test with Different Clients
+
 ```bash
-curl -X POST https://your-domain.com/mcp \
+# Test with curl
+curl -X POST http://localhost:3333/mcp \
   -H "Content-Type: application/json" \
-  -H "Accept: application/json" \
-  -d '{"jsonrpc":"2.0","id":"test","method":"tools/list","params":{}}'
+  -d '{"jsonrpc": "2.0", "id": 1, "method": "tools/list"}'
+
+# Test with n8n MCP Client node
+# Use your n8n instance with HTTP Streamable credentials
+
+# Test health endpoint
+curl http://localhost:3333/health
 ```
 
 ---
 
-## 🧪 **Testing & Quality Assurance**
+## 📈 Monitoring
 
-This project includes comprehensive security tests to ensure production readiness:
-
-- **27 Security Tests** covering authentication, rate limiting, input validation
-- **Automated CI/CD** testing for all critical paths
-- **Coverage Reports** to ensure thorough testing
-- **Security Hardening** against common attack vectors
+### Health Checks
 
 ```bash
-# Run HTTP server security tests
-npm run test:http
+# Basic health
+GET /health
 
-# Run all workspace tests  
-npm test
+# Detailed status
+GET /status
 
-# Generate coverage reports
-npm run test:http:coverage
+# Metrics
+GET /metrics
 ```
 
-For detailed testing documentation, see [TESTING.md](./TESTING.md).
-
-## 🔐 **Security Features**
-
-### **Built-in Security Hardening**
-
-The MCP server includes enterprise-grade security features to prevent abuse:
-
-#### **🔑 API Key Authentication (Recommended)**
-```bash
-# Set API keys in environment variables
-MCP_API_KEYS="your-secret-key-1,your-secret-key-2,your-secret-key-3"
-
-# Client requests must include the key
-curl -X POST https://your-domain.com/mcp \
-  -H "X-API-Key: your-secret-key-1" \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":"test","method":"tools/list","params":{}}'
-```
-
-#### **🛡️ Rate Limiting & DDoS Protection**
-```bash
-# Configure rate limits (optional)
-MCP_RATE_LIMIT_REQUESTS=100  # Max requests per 15min for /mcp endpoint
-MCP_RATE_LIMIT_GENERAL=60    # Max requests per minute for all endpoints
-```
-
-#### **🌐 CORS Security**
-```bash
-# Restrict to specific domains (recommended)
-MCP_ALLOWED_ORIGINS="https://app.yourdomain.com,https://admin.yourdomain.com"
-
-# Or allow all origins (not recommended for production)
-MCP_ALLOWED_ORIGINS="*"
-```
-
-#### **🔒 Additional Security Headers**
-- **Helmet.js**: Secure HTTP headers (XSS protection, CSRF, etc.)
-- **Content Security Policy**: Prevents code injection attacks
-- **Request Validation**: JSON-RPC format validation
-- **Payload Limits**: 1MB max request size
-- **Method Filtering**: Blocks potentially dangerous methods
-
-### **⚠️ Production Security Checklist**
+### Logging
 
 ```bash
-# 1. Set strong API keys
-MCP_API_KEYS="$(openssl rand -hex 32),$(openssl rand -hex 32)"
+# View container logs
+docker-compose logs -f
 
-# 2. Restrict CORS origins
-MCP_ALLOWED_ORIGINS="https://yourdomain.com"
-
-# 3. Configure rate limiting
-MCP_RATE_LIMIT_REQUESTS=50   # Conservative limit
-MCP_RATE_LIMIT_GENERAL=30
-
-# 4. Enable read-only mode
-MCP_READ_ONLY=true
-
-# 5. Use HTTPS (via Coolify/Traefik)
-# 6. Monitor logs for suspicious activity
+# Structured JSON logging in production
+NODE_ENV=production docker-compose up
 ```
-
-### **🚨 Security Warnings**
-
-The server will log security events:
-- ⚠️  **No API keys configured** - Server runs in open mode
-- 🚨 **Unauthorized access attempts** - Invalid API keys
-- 🚨 **Rate limiting triggered** - Too many requests
-- 🚨 **Blocked dangerous methods** - Potential attack attempts
-- 🚨 **CORS violations** - Unauthorized origin access
-
-### **Legacy Security Notes**
-
-- **Access Token**: Keep your Supabase access token secure
-- **Read-Only Mode**: Enabled by default to prevent accidental data modification  
-- **RLS**: Row Level Security is enforced on all database operations
 
 ---
 
-## 🐛 **Troubleshooting**
+## 🤝 Why HTTP Stream vs SSE?
 
-### **Common Issues**
+| Transport | Status | n8n Support | Recommendation |
+|-----------|--------|-------------|----------------|
+| **HTTP Stream** | ✅ Current MCP 2025 standard | ✅ Native support | **Recommended** |
+| SSE | ⚠️ Deprecated | ⚠️ Legacy only | Avoid for new projects |
+| STDIO | ✅ Desktop AI tools | ❌ Not for n8n | Claude Desktop, Cursor |
 
-1. **"MCP server not ready"**
-   - Check environment variables are set correctly
-   - Verify Supabase project is accessible
-   - Check server logs for detailed error messages
+**Why we built HTTP-first:**
+- SSE has connection stability issues with n8n
+- HTTP Stream is the official MCP 2025 standard
+- Better performance and reliability
+- Native n8n support without workarounds
 
-2. **Connection timeouts**
-   - Increase request timeout (default: 30 seconds)
-   - Check network connectivity to Supabase
+---
 
-3. **JSON parsing errors**
-   - Ensure request format follows JSON-RPC 2.0 specification
-   - Check Content-Type headers are set correctly
+## 🆘 Troubleshooting
 
-4. **Tool not found**
-   - Use `tools/list` to see available tools
-   - Check tool name spelling and parameters
+### Common Issues
 
-### **Debug Mode**
-Set environment variable for verbose logging:
+**Connection Refused:**
 ```bash
-DEBUG=mcp:* node mcp-http-server.js
+# Check if server is running
+curl http://localhost:3333/health
+
+# Check Docker logs
+docker-compose logs -f
 ```
 
-## SSE-Unterstützung für n8n
-
-Der Supabase MCP Server unterstützt jetzt Server-Sent Events (SSE) für die Integration mit n8n und anderen Clients, die eine Streaming-Verbindung benötigen.
-
-### Endpunkte
-
-- **SSE-Verbindung**: `GET /sse` - Stellt eine SSE-Verbindung her
-- **SSE-Anfragen**: `POST /sse` - Sendet Anfragen über den SSE-Kanal
-
-### Verwendung mit n8n
-
-1. Importieren Sie die Konfigurationsdatei `config/n8n-sse-config.json` in n8n
-2. Konfigurieren Sie die Verbindung mit Ihrem MCP-Server
-3. Verwenden Sie die n8n-Knoten, um mit dem MCP-Server zu kommunizieren
-
-## Verzeichnisstruktur
-
-Das Projekt ist jetzt besser organisiert:
-
-- `config/` - Konfigurationsdateien und Beispiele
-  - `n8n-final-config.json` - Konfiguration für n8n MCP Integration
-  - `n8n-sse-config.json` - Konfiguration für n8n mit SSE-Unterstützung
-  - `server-config-example.env` - Beispiel für Umgebungsvariablen
-  - `sse-example.json` - Beispiel-JSON für SSE-Anfragen
-
-- `docker/` - Docker-Konfigurationen für verschiedene Einsatzszenarien
-  - `Dockerfile` - Standard Docker-Konfiguration
-  - `Dockerfile.sse` - Docker-Konfiguration mit SSE-Unterstützung
-  - `Dockerfile.standard` - Alternative Standard-Konfiguration
-  - `docker-compose.simple.yaml` - Einfache Docker-Compose-Konfiguration
-  - `docker-compose.coolify.yaml` - Docker-Compose für Coolify
-  - `docker-compose-coolify-sse.yaml` - Docker-Compose für Coolify mit SSE
-  - `docker-compose.coolify-combined.yaml` - Kombinierte Konfiguration mit Standard- und SSE-Instanz
-
-- `packages/` - Quellcode der MCP-Pakete
-  - `mcp-server-supabase/` - Supabase MCP Server
-  - `mcp-utils/` - Hilfsfunktionen
-
-- `tests/` - Testskripte und -utilities
-  - `test-sse-local.js` - Test für SSE-Funktionalität
-  - `mcp-http-server.test.js` - Tests für den HTTP-Server
-  - `vitest.config.js` - Vitest-Konfiguration
-  - `TESTING.md` - Dokumentation zur Testausführung
-
-- `supabase/` - Supabase-spezifische Dateien
-  - `migrations/` - Datenbankmigrationen
-  - `seed.sql` - Seed-Daten für die Datenbank
-
-Siehe die README-Dateien in den jeweiligen Verzeichnissen für weitere Informationen.
-
-# Supabase MCP Server
-
-Multi-transport Model Context Protocol (MCP) Server für Supabase.
-
-## Funktionen
-
-- Unterstützt mehrere Transportprotokolle:
-  - Streamable HTTP (MCP-Spezifikation)
-  - Server-Sent Events (SSE) für n8n-Integration
-- Authentifizierung über API-Schlüssel
-- Rate-Limiting zum Schutz vor Missbrauch
-- Docker-Integration für einfache Bereitstellung
-
-## Schnellstart
-
-### Lokale Entwicklung
-
+**Authentication Errors:**
 ```bash
-# Installiere Abhängigkeiten
-npm install
+# Verify API key
+curl -H "X-API-Key: your-key" http://localhost:3333/mcp
 
-# Starte den Server
-node mcp-http-server.js
+# Check environment variables
+docker-compose config
 ```
 
-### n8n-Integration mit ngrok
+**n8n Integration Issues:**
+- Ensure you're using `HTTP Streamable` connection type
+- Verify the base URL includes `/mcp` endpoint
+- Check API key in n8n credentials
 
-Für die Integration mit n8n können Sie das Quickstart-Skript verwenden, das den Server lokal startet und über ngrok bereitstellt:
+---
 
-```bash
-# Installiere ngrok (falls noch nicht geschehen)
-npm install -g ngrok
+## 📚 Resources
 
-# Starte den Server mit ngrok-Tunnel
-node tests/quickstart.js
-```
+- [Model Context Protocol Documentation](https://modelcontextprotocol.io/introduction)
+- [n8n MCP Client Node](https://github.com/nerding-io/n8n-nodes-mcp)
+- [Supabase API Documentation](https://supabase.com/docs)
+- [Docker Compose Guide](https://docs.docker.com/compose/)
 
-Das Skript führt Sie durch die Einrichtung und zeigt Anweisungen zur Konfiguration des MCP-Nodes in n8n.
+---
 
-### Docker
+## 🤖 AI-Generated Code Notice
 
-```bash
-# Standard-Konfiguration
-docker-compose -f docker/docker-compose.yaml up -d
+This project was programmed with Claude 4.0 Sonnet and includes comprehensive security testing. While extensively tested, AI-generated code may contain errors or oversights. Please review thoroughly before production use.
 
-# Coolify-Konfiguration
-docker-compose -f docker/docker-compose.coolify.yaml up -d
-```
+---
 
-## Konfiguration
+## 📄 License
 
-Die folgenden Umgebungsvariablen können konfiguriert werden:
+MIT License - see [LICENSE.md](LICENSE.md) for details.
 
-- `SUPABASE_ACCESS_TOKEN` - Supabase Access Token
-- `SUPABASE_PROJECT_REF` - Supabase Projekt-ID
-- `MCP_PORT` - Port für den MCP-Server (Standard: 3333)
-- `MCP_READ_ONLY` - Schreibgeschützter Modus (true/false)
-- `MCP_API_KEYS` - Kommagetrennte Liste von API-Schlüsseln für die Authentifizierung
-- `NODE_OPTIONS` - Für SSE wird `--experimental-global-webcrypto` benötigt
-- `EXPRESS_TRUST_PROXY` - Für SSE empfohlen: 1
+---
 
-## Endpunkte
+## 🌟 Contributing
 
-- `/` - Landingpage mit Statusinformationen
-- `/health` - Gesundheitscheck für Load Balancer
-- `/mcp` - Hauptendpunkt für MCP-Anfragen (Streamable HTTP)
-- `/sse` - Server-Sent Events Endpunkt für n8n-Integration
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Submit a pull request
 
-## Tests
+---
 
-```bash
-# Führe alle Tests aus
-npm test
+## ⭐ Support
 
-# Führe nur SSE-Tests aus
-node tests/test-sse-local.js
-```
+If this helped you integrate Supabase with n8n, please give it a star! ⭐
 
-## Docker-Verzeichnis
+For issues and questions:
+- 🐛 [Report Bugs](https://github.com/BIFROTEK-com/supabase-mcp-http-stream-n8n/issues)
+- 💡 [Feature Requests](https://github.com/BIFROTEK-com/supabase-mcp-http-stream-n8n/discussions)
+- 📧 [Email Support](mailto:support@bifrotek.com)
 
-Das `docker/`-Verzeichnis enthält verschiedene Docker-Konfigurationen:
+---
 
-- `docker/Dockerfile` - Haupt-Dockerfile
-- `docker/docker-compose.yaml` - Standard-Konfiguration
-- `docker/docker-compose.coolify.yaml` - Konfiguration für Coolify
-
-Weitere Informationen finden Sie in [docker/README.md](docker/README.md).
+**🚀 Ready to supercharge your n8n workflows with Supabase? Deploy now!** 

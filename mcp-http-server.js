@@ -5,9 +5,32 @@ const { spawn } = require('child_process');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
+const crypto = require('crypto');
 
 const app = express();
 const port = process.env.MCP_PORT || 3333;
+
+// MCP HTTP Stream Transport Configuration
+const mcpConfig = {
+    responseMode: process.env.MCP_RESPONSE_MODE || 'batch', // 'batch' or 'stream'
+    batchTimeout: parseInt(process.env.MCP_BATCH_TIMEOUT || '30000'), // 30 seconds
+    maxMessageSize: process.env.MCP_MAX_MESSAGE_SIZE || '4mb',
+    session: {
+        enabled: process.env.MCP_SESSION_ENABLED !== 'false', // default true
+        headerName: 'Mcp-Session-Id',
+        allowClientTermination: process.env.MCP_ALLOW_CLIENT_TERMINATION !== 'false' // default true
+    },
+    resumability: {
+        enabled: process.env.MCP_RESUMABILITY_ENABLED === 'true', // default false
+        historyDuration: parseInt(process.env.MCP_HISTORY_DURATION || '300000') // 5 minutes
+    }
+};
+
+console.log('🔧 MCP Configuration:', {
+    responseMode: mcpConfig.responseMode,
+    sessionEnabled: mcpConfig.session.enabled,
+    resumabilityEnabled: mcpConfig.resumability.enabled
+});
 
 // Configure Express trust proxy for ngrok/proxy environments
 if (process.env.EXPRESS_TRUST_PROXY === '1' || process.env.NODE_ENV === 'production') {
@@ -183,6 +206,11 @@ let sseClientId = 1;
 // Session management for Streamable HTTP
 const sessions = new Map();
 let sessionIdCounter = 1;
+
+// Generate secure session ID
+function generateSecureSessionId() {
+    return crypto.randomBytes(16).toString('hex');
+}
 
 // Response buffer for handling multi-line JSON
 let responseBuffer = '';
@@ -361,16 +389,16 @@ app.get('/', (req, res) => {
         
         // 🔄 Multi-transport support
         transports: {
-            'streamable_http': '🚀 POST /mcp (MCP Streamable HTTP Transport)',
-            'server_sent_events': '🌊 GET/POST /sse (n8n compatible)'
+            'http_streamable': '🚀 POST /mcp (MCP HTTP Streamable Transport - RECOMMENDED)',
+            'server_sent_events': '🌊 GET/POST /sse (Legacy n8n compatibility)'
         },
         
         // 📍 Available endpoints
         endpoints: {
             'api_dashboard': '📖 GET / (this page)',
             'health_check': '❤️ GET /health',
-            'mcp_api': '🔌 POST /mcp (Streamable HTTP)',
-            'sse_api': '🌊 GET/POST /sse'
+            'mcp_streamable': '🚀 POST /mcp (HTTP Streamable)',
+            'sse_legacy': '🌊 GET/POST /sse (Legacy SSE)'
         },
         
         // 🔒 Security dashboard
@@ -400,19 +428,20 @@ app.get('/', (req, res) => {
                 method: 'POST',
                 url: '/mcp',
                 headers: hasApiKeys 
-                    ? { 'X-API-Key': 'your-api-key', 'Content-Type': 'application/json' } 
-                    : { 'Content-Type': 'application/json' },
+                    ? { 'X-API-Key': 'your-api-key', 'Content-Type': 'application/json', 'Accept': 'application/json' } 
+                    : { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                 body: { jsonrpc: '2.0', id: 1, method: 'tools/list' }
             },
-            'streamable_http_session': {
+            'http_streamable_session': {
                 method: 'POST',
                 url: '/mcp',
                 headers: {
                     'Content-Type': 'application/json',
-                    'MCP-Session-ID': 'your-session-id' // Optional, server will create one if not provided
+                    'Accept': 'application/json',
+                    'Mcp-Session-Id': 'your-session-id' // Optional, server will create one if not provided
                 },
                 body: { jsonrpc: '2.0', id: 1, method: 'tools/list' },
-                description: 'Server responds with MCP-Session-ID header for session tracking'
+                description: 'Server responds with Mcp-Session-Id header for session tracking'
             },
             'health_check': {
                 method: 'GET', 
@@ -420,12 +449,12 @@ app.get('/', (req, res) => {
                 auth_required: false,
                 expected_response: { status: 'ok', mcpReady: true }
             },
-            'sse_connection': {
+            'sse_connection_legacy': {
                 method: 'GET',
                 url: '/sse',
                 headers: { 'Accept': 'text/event-stream', 'Cache-Control': 'no-cache' },
                 auth_required: hasApiKeys,
-                description: 'Establishes SSE connection for n8n integration'
+                description: 'Legacy SSE connection for older n8n versions'
             }
         },
         
@@ -570,18 +599,62 @@ app.post('/sse', async (req, res) => {
 
 // Main MCP endpoint - Streamable HTTP Transport
 app.post('/mcp', async (req, res) => {
-    // Get or create session ID
-    const sessionId = req.headers['mcp-session-id'] || `session-${sessionIdCounter++}`;
+    // Validate Accept header according to MCP specification
+    const acceptHeader = req.headers['accept'] || '';
+    if (!acceptHeader.includes('application/json') && !acceptHeader.includes('text/event-stream')) {
+        return res.status(406).json({
+            jsonrpc: "2.0",
+            id: req.body?.id || null,
+            error: {
+                code: -32602,
+                message: "Invalid Accept header. Must include 'application/json' or 'text/event-stream'"
+            }
+        });
+    }
+    
+    // Get or create secure session ID
+    const sessionId = req.headers['mcp-session-id'] || generateSecureSessionId();
+    
+    // Track session (create if new)
+    if (!sessions.has(sessionId)) {
+        sessions.set(sessionId, {
+            id: sessionId,
+            created: new Date().toISOString(),
+            lastActivity: new Date().toISOString(),
+            messageHistory: [] // For resumability
+        });
+        console.log(`🆕 New session created: ${sessionId}`);
+    } else {
+        // Update last activity
+        const session = sessions.get(sessionId);
+        session.lastActivity = new Date().toISOString();
+    }
     
     // Set response headers for Streamable HTTP
     res.setHeader('Content-Type', 'application/json');
-    res.setHeader('MCP-Session-ID', sessionId);
+    res.setHeader('Mcp-Session-Id', sessionId);
     
     try {
         // Process the request
-        const response = await sendMCPRequest(req.body);
+        const response = await sendMCPRequest(req.body, sessionId);
         
-        // Send response
+        // Store message in session history for resumability
+        const session = sessions.get(sessionId);
+        if (session) {
+            session.messageHistory.push({
+                id: `event-${Date.now()}`,
+                timestamp: new Date().toISOString(),
+                request: req.body,
+                response: response
+            });
+            
+            // Limit history size (keep last 100 messages)
+            if (session.messageHistory.length > 100) {
+                session.messageHistory = session.messageHistory.slice(-100);
+            }
+        }
+        
+        // Send JSON response (HTTP Streamable batch mode)
         res.json(response);
     } catch (error) {
         // Send error response in JSON-RPC format
@@ -594,6 +667,37 @@ app.post('/mcp', async (req, res) => {
             }
         });
     }
+});
+
+// DELETE method for session termination (MCP HTTP Stream Transport specification)
+app.delete('/mcp', (req, res) => {
+    const sessionId = req.headers['mcp-session-id'];
+    
+    if (!sessionId) {
+        return res.status(400).json({
+            jsonrpc: "2.0",
+            id: null,
+            error: {
+                code: -32602,
+                message: "Missing Mcp-Session-Id header"
+            }
+        });
+    }
+    
+    // Remove session from our tracking
+    if (sessions.has(sessionId)) {
+        sessions.delete(sessionId);
+        console.log(`🗑️ Session ${sessionId} terminated by client`);
+    }
+    
+    // Also remove from SSE clients if applicable
+    if (sseClients.has(sessionId)) {
+        const client = sseClients.get(sessionId);
+        client.end();
+        sseClients.delete(sessionId);
+    }
+    
+    res.status(204).end(); // No content response for successful deletion
 });
 
 // Legacy HTTP endpoint for simple testing
@@ -638,4 +742,4 @@ process.on('SIGINT', () => {
         mcpProcess.kill();
     }
     process.exit(0);
-}); 
+});
