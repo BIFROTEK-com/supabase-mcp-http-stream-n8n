@@ -27,20 +27,21 @@ FROM node:18-alpine AS production
 # Set working directory
 WORKDIR /app
 
-# Install dependencies for native modules and wget for healthcheck
-RUN apk add --no-cache python3 make g++ wget
+# Install ONLY runtime dependencies (no build tools!)
+RUN apk add --no-cache wget
 
 # Create non-root user for security BEFORE copying files
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S mcp -u 1001 -G nodejs
 
-# Copy package files
+# Copy package files for production dependencies
 COPY package*.json ./
 COPY packages/mcp-server-supabase/package.json ./packages/mcp-server-supabase/
 COPY packages/mcp-utils/package.json ./packages/mcp-utils/
 
-# Install only production dependencies
-RUN npm install --ignore-scripts --production
+# Install ONLY production dependencies without build tools
+# Use --ignore-scripts to skip any native compilation
+RUN npm ci --only=production --ignore-scripts
 
 # Copy built files from builder stage
 COPY --from=builder /app/packages/mcp-server-supabase/dist ./packages/mcp-server-supabase/dist
@@ -50,7 +51,7 @@ COPY --from=builder /app/packages/mcp-utils/dist ./packages/mcp-utils/dist
 COPY mcp-http-server.js ./
 COPY env.example ./
 
-# Fix ownership for non-root user
+# Fix ownership for non-root user (do this efficiently)
 RUN chown -R mcp:nodejs /app
 
 # Expose ONLY the correct port
