@@ -445,3 +445,33 @@ After successful deployment:
 4. **Scale Up**: Add more Supabase features or custom tools
 
 Your Supabase MCP Server is now ready for production use! 🎉 
+
+## Deployment mit SSE-Unterstützung für n8n
+
+Für die Integration mit n8n benötigen Sie die SSE-Unterstützung. Verwenden Sie die folgenden Dateien:
+
+- `docker/Dockerfile.sse` - Dockerfile mit SSE-Unterstützung
+- `docker/docker-compose-coolify-sse.yaml` - Docker Compose Konfiguration für Coolify mit SSE-Unterstützung
+
+### Schritte für das Deployment:
+
+1. Kopieren Sie die Dateien in Ihr Coolify-Projekt:
+   ```bash
+   cp docker/Dockerfile.sse /path/to/coolify/project/
+   cp docker/docker-compose-coolify-sse.yaml /path/to/coolify/project/docker-compose.yaml
+   ```
+
+2. Konfigurieren Sie die Umgebungsvariablen in Coolify:
+   - `SUPABASE_ACCESS_TOKEN` - Ihr Supabase Access Token
+   - `SUPABASE_PROJECT_REF` - Ihre Supabase Projekt-ID
+   - `MCP_FEATURES` - Aktivierte Features (z.B. `database,docs,development,functions,account,debug,branching,storage`)
+   - `MCP_READ_ONLY` - Schreibgeschützter Modus (true/false)
+   - `MCP_API_KEYS` - API-Schlüssel für die Authentifizierung
+   - `MCP_ALLOWED_ORIGINS` - Erlaubte Ursprünge für CORS
+
+3. Starten Sie den Dienst in Coolify
+
+4. Testen Sie die SSE-Verbindung:
+   ```bash
+   curl -N -H "Accept: text/event-stream" -H "Cache-Control: no-cache" https://your-domain.com/sse
+   ``` 

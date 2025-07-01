@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "supabase-mcp-sse": {
+      "command": "curl",
+      "args": [
+        "-N",
+        "-H", "Accept: text/event-stream",
+        "-H", "Cache-Control: no-cache",
+        "-H", "Connection: keep-alive",
+        "--no-buffer",
+        "https://sb-mcp.bifrotek.com/mcp"
+      ],
+      "transport": "sse",
+      "env": {
+        "CURL_CA_BUNDLE": ""
+      }
+    }
+  },
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/list"
+} 

@@ -1130,3 +1130,30 @@ Set environment variable for verbose logging:
 ```bash
 DEBUG=mcp:* node mcp-http-server.js
 ```
+
+## SSE-Unterstützung für n8n
+
+Der Supabase MCP Server unterstützt jetzt Server-Sent Events (SSE) für die Integration mit n8n und anderen Clients, die eine Streaming-Verbindung benötigen.
+
+### Endpunkte
+
+- **SSE-Verbindung**: `GET /sse` - Stellt eine SSE-Verbindung her
+- **SSE-Anfragen**: `POST /sse` - Sendet Anfragen über den SSE-Kanal
+
+### Verwendung mit n8n
+
+1. Importieren Sie die Konfigurationsdatei `config/n8n-sse-config.json` in n8n
+2. Konfigurieren Sie die Verbindung mit Ihrem MCP-Server
+3. Verwenden Sie die n8n-Knoten, um mit dem MCP-Server zu kommunizieren
+
+## Verzeichnisstruktur
+
+Das Projekt ist jetzt besser organisiert:
+
+- `config/` - Konfigurationsdateien und Beispiele
+- `docker/` - Docker-Konfigurationen für verschiedene Einsatzszenarien
+- `packages/` - Quellcode der MCP-Pakete
+- `tests/` - Testskripte und -utilities
+- `supabase/` - Supabase-spezifische Dateien
+
+Siehe die README-Dateien in den jeweiligen Verzeichnissen für weitere Informationen.

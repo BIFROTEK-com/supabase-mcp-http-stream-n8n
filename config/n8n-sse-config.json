@@ -1,0 +1,164 @@
+{
+  "name": "Supabase MCP SSE Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "=https://your-mcp-server.com/sse",
+        "options": {
+          "reconnectTimeout": 5000,
+          "reconnectMaxRetries": 10
+        }
+      },
+      "name": "SSE Trigger",
+      "type": "n8n-nodes-base.sseReceive",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://your-mcp-server.com/sse",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "jsonrpc",
+              "value": "2.0"
+            },
+            {
+              "name": "id",
+              "value": "={{ $json.id || 1 }}"
+            },
+            {
+              "name": "method",
+              "value": "tools/list"
+            }
+          ]
+        }
+      },
+      "name": "MCP API Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Parse the response\nconst data = $json;\n\n// Extract the tools list\nconst tools = data.result?.tools || [];\n\n// Format the output\nreturn {\n  toolsCount: tools.length,\n  availableTools: tools.map(tool => tool.name),\n  fullResponse: data\n};"
+      },
+      "name": "Process Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        650,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "SSE Trigger": {
+      "main": [
+        [
+          {
+            "node": "MCP API Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP API Request": {
+      "main": [
+        [
+          {
+            "node": "Process Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "mcpServers": {
+    "supabase-mcp-sse": {
+      "command": "npx",
+      "args": [
+        "-y", 
+        "supergateway",
+        "--sse",
+        "https://sb-mcp.bifrotek.com/sse",
+        "--header",
+        "Authorization: Bearer YOUR-TOKEN-HERE"
+      ]
+    }
+  },
+  "n8n_mcp_client_node_config": {
+    "node_name": "MCP Client Tool",
+    "sse_endpoint": "https://sb-mcp.bifrotek.com/sse",
+    "authentication": "Bearer Auth",
+    "tools_to_include": "All",
+    "required_headers": {
+      "Accept": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive"
+    },
+    "note": "Der n8n MCP Client Node erwartet einen /sse Endpoint, nicht /mcp"
+  },
+  "n8n_mcp_client_tool_configuration": {
+    "step_1_server_requirements": {
+      "sse_endpoint": "https://your-server.com/sse",
+      "description": "Der Server MUSS einen /sse Endpoint bereitstellen",
+      "current_problem": "https://sb-mcp.bifrotek.com/sse gibt 404 zurück"
+    },
+    "step_2_n8n_node_configuration": {
+      "node_type": "MCP Client Tool",
+      "sse_endpoint": "https://sb-mcp.bifrotek.com/sse",
+      "authentication": "Bearer Auth",
+      "tools_to_include": "All",
+      "required_server_headers": {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+        "Access-Control-Allow-Origin": "*"
+      }
+    },
+    "step_3_server_modification_needed": {
+      "current_endpoint": "/mcp",
+      "needed_endpoint": "/sse", 
+      "solution": "Server muss SSE-Endpoint zusätzlich bereitstellen"
+    }
+  },
+  "docker_compose_sse_configuration": {
+    "version": "3.8",
+    "services": {
+      "mcp-server": {
+        "image": "silverstar3o7/supabase-mcp-server:latest",
+        "ports": ["3001:3001"],
+        "environment": [
+          "SUPABASE_ACCESS_TOKEN=sbp_dba9b2d1f5bea58f7d4fb37cba7e7b1dc02b16b0",
+          "SUPABASE_PROJECT_REF=cdnhtsayaekckxaatshj",
+          "MCP_READ_ONLY=true",
+          "ENABLE_SSE_ENDPOINT=true"
+        ],
+        "command": ["node", "server.js", "--enable-sse", "--port", "3001"]
+      }
+    }
+  }
+} 

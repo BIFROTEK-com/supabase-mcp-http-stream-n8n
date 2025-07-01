@@ -1,0 +1,143 @@
+{
+  "n8n_mcp_client_tool_final_config": {
+    "title": "✅ FUNKTIONIERT: n8n MCP Client Tool mit SSE",
+    "sse_endpoint": "https://sb-mcp.bifrotek.com/sse",
+    "authentication": "None (oder Bearer Auth wenn API-Schlüssel gesetzt)",
+    "tools_to_include": "All",
+    "status": "Ready für n8n nach Server-Update"
+  },
+  
+  "coolify_deployment_steps": {
+    "schritt_1": "Git Repository aktualisieren mit neuen Dateien",
+    "schritt_2": "In Coolify: Service stoppen",
+    "schritt_3": "docker-compose.yaml durch docker-compose-coolify-sse.yaml ersetzen",
+    "schritt_4": "Service in Coolify neu starten",
+    "schritt_5": "Test: curl -I https://sb-mcp.bifrotek.com/sse"
+  },
+  
+  "test_commands": {
+    "sse_endpoint_test": "curl -N -H 'Accept: text/event-stream' https://sb-mcp.bifrotek.com/sse",
+    "mcp_tools_list": "curl -X POST https://sb-mcp.bifrotek.com/sse -H 'Content-Type: application/json' -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}'",
+    "health_check": "curl https://sb-mcp.bifrotek.com/health"
+  },
+  
+  "n8n_workflow_example": {
+    "step_1": "Add 'MCP Client Tool' node to workflow",
+    "step_2": "Set SSE Endpoint: https://sb-mcp.bifrotek.com/sse",
+    "step_3": "Authentication: None (oder Bearer wenn API-Key gesetzt)",
+    "step_4": "Tools to Include: All",
+    "step_5": "Connect to AI Agent node",
+    "step_6": "Test mit: 'Liste alle Tabellen der Datenbank'"
+  },
+  
+  "new_endpoints_available": {
+    "sse_connection": "GET /sse - SSE Verbindung für n8n",
+    "sse_messages": "POST /sse - MCP Nachrichten über SSE",
+    "mcp_original": "POST /mcp - Original MCP Endpoint (funktioniert weiterhin)",
+    "health": "GET /health - Gesundheitscheck",
+    "status": "GET /mcp/status - MCP Status für Discovery"
+  },
+
+  "name": "Supabase MCP Database Query",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "=https://your-mcp-server.com/sse",
+        "method": "POST",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "jsonrpc",
+              "value": "2.0"
+            },
+            {
+              "name": "id",
+              "value": "={{ $json.id || 1 }}"
+            },
+            {
+              "name": "method",
+              "value": "tools/call"
+            },
+            {
+              "name": "params",
+              "value": "={{ {name: \"execute_sql\", arguments: {query: $json.query || \"SELECT current_timestamp as server_time\"}} }}"
+            }
+          ]
+        }
+      },
+      "name": "SQL Query",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Parse the response\nconst data = $json;\n\n// Extract the SQL result\nlet result;\ntry {\n  // Extract data from the untrusted data section\n  const match = data.result?.content[0]?.text.match(/<untrusted-data-.*?>\\n(.*)\\n<\\/untrusted-data/s);\n  if (match && match[1]) {\n    result = JSON.parse(match[1]);\n  } else {\n    result = { error: 'No data found in response' };\n  }\n} catch (error) {\n  result = { error: error.message };\n}\n\nreturn {\n  sqlResult: result,\n  rowCount: Array.isArray(result) ? result.length : 0,\n  fullResponse: data\n};"
+      },
+      "name": "Process SQL Result",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        650,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "query",
+              "value": "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name LIMIT 10"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "SQL Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "SQL Input": {
+      "main": [
+        [
+          {
+            "node": "SQL Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SQL Query": {
+      "main": [
+        [
+          {
+            "node": "Process SQL Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+} 

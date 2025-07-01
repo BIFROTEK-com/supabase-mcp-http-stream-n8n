@@ -486,6 +486,105 @@ app.get('/mcp/status', (req, res) => {
     });
 });
 
+// ✅ SSE Endpoint speziell für n8n MCP Client Tool Node
+app.get('/sse', async (req, res) => {
+    console.log('🌊 SSE connection request from:', req.ip);
+    
+    // SSE Headers
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cache-Control',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+    });
+    
+    const clientId = `sse-${sseClientId++}`;
+    sseClients.set(clientId, res);
+    
+    // Send initial connection event
+    res.write(`data: ${JSON.stringify({
+        type: 'connection',
+        clientId: clientId,
+        message: 'Connected to Supabase MCP Server via SSE',
+        timestamp: new Date().toISOString(),
+        endpoints: {
+            'tools/list': 'List available MCP tools',
+            'tools/call': 'Execute MCP tool',
+            'ping': 'Health check'
+        }
+    })}\n\n`);
+    
+    // Keep-alive ping every 30 seconds
+    const keepAlive = setInterval(() => {
+        try {
+            res.write(`data: ${JSON.stringify({
+                type: 'ping',
+                timestamp: new Date().toISOString()
+            })}\n\n`);
+        } catch (error) {
+            clearInterval(keepAlive);
+            sseClients.delete(clientId);
+        }
+    }, 30000);
+    
+    // Handle client disconnect
+    req.on('close', () => {
+        clearInterval(keepAlive);
+        sseClients.delete(clientId);
+        console.log(`🌊 SSE client ${clientId} disconnected`);
+    });
+    
+    req.on('error', () => {
+        clearInterval(keepAlive);
+        sseClients.delete(clientId);
+    });
+});
+
+// ✅ SSE Message endpoint für n8n POST-Requests
+app.post('/sse', async (req, res) => {
+    console.log('🌊 SSE POST request from:', req.ip, 'Body:', req.body);
+    
+    try {
+        const response = await sendMCPRequest(req.body);
+        
+        // Send response to all SSE clients
+        const message = `data: ${JSON.stringify(response)}\n\n`;
+        sseClients.forEach((client, clientId) => {
+            try {
+                client.write(message);
+            } catch (error) {
+                sseClients.delete(clientId);
+            }
+        });
+        
+        // Also send regular HTTP response
+        res.json(response);
+    } catch (error) {
+        const errorResponse = {
+            jsonrpc: "2.0",
+            id: req.body?.id || null,
+            error: {
+                code: -32603,
+                message: error.message
+            }
+        };
+        
+        // Send error to SSE clients
+        const errorMessage = `data: ${JSON.stringify(errorResponse)}\n\n`;
+        sseClients.forEach((client, clientId) => {
+            try {
+                client.write(errorMessage);
+            } catch (error) {
+                sseClients.delete(clientId);
+            }
+        });
+        
+        res.status(500).json(errorResponse);
+    }
+});
+
 // Main MCP endpoint - supports multiple transports
 app.post('/mcp', async (req, res) => {
     const acceptHeader = req.headers.accept || '';
