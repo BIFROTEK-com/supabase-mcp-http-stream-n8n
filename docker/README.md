@@ -1,41 +1,51 @@
-# Docker-Konfigurationen für Supabase MCP
+# Docker Configurations
 
-Dieses Verzeichnis enthält verschiedene Docker-Konfigurationen für den Supabase MCP Server.
+This directory contains Docker configurations for deploying the Supabase MCP Server.
 
-## Dateien
+## Available Configurations
 
-- `Dockerfile` - Standard Docker-Konfiguration für den MCP Server
-- `Dockerfile.sse` - Docker-Konfiguration mit SSE-Unterstützung für n8n
-- `Dockerfile.standard` - Alternative Standard-Konfiguration
-- `docker-compose.simple.yaml` - Einfache Docker Compose Konfiguration
-- `docker-compose.coolify.yaml` - Docker Compose Konfiguration für Coolify
-- `docker-compose-coolify-sse.yaml` - Docker Compose Konfiguration für Coolify mit SSE-Unterstützung
-- `docker-compose.coolify-combined.yaml` - Kombinierte Docker Compose Konfiguration für Coolify mit Standard- und SSE-Instanz
+### 1. Standard Docker Deployment (`docker-compose.yaml`)
 
-## Verwendung
-
-### Standard-Konfiguration
+For standard Docker deployments without reverse proxy:
 
 ```bash
-docker build -t supabase-mcp -f docker/Dockerfile .
-docker run -p 3333:3333 -e SUPABASE_ACCESS_TOKEN=your-token -e SUPABASE_PROJECT_REF=your-ref supabase-mcp
+docker-compose up -d
 ```
 
-### SSE-Konfiguration für n8n
+Features:
+- Direct port mapping (3333:3333)
+- Suitable for local development
+- Works with VPS deployments
+- Simple configuration
+
+### 2. Coolify Deployment (`docker-compose.coolify.yaml`)
+
+For deployments using Coolify with Traefik:
 
 ```bash
-docker build -t supabase-mcp-sse -f docker/Dockerfile.sse .
-docker run -p 3333:3333 -e SUPABASE_ACCESS_TOKEN=your-token -e SUPABASE_PROJECT_REF=your-ref supabase-mcp-sse
+# Deploy via Coolify UI or:
+docker-compose -f docker-compose.coolify.yaml up -d
 ```
 
-### Coolify-Deployment
+Features:
+- Traefik integration for automatic SSL
+- No port exposure (Traefik handles routing)
+- Requires `DOMAIN` environment variable
+- Stricter rate limiting for production
+- External network configuration
 
-Für Coolify stehen drei Konfigurationen zur Verfügung:
+## Environment Variables
 
-1. **Standard**: Verwenden Sie `docker-compose.coolify.yaml`
-2. **SSE**: Verwenden Sie `docker-compose-coolify-sse.yaml`
-3. **Kombiniert**: Verwenden Sie `docker-compose.coolify-combined.yaml` für beide Instanzen
+Required:
+- `SUPABASE_ACCESS_TOKEN` - Your Supabase access token
+- `SUPABASE_PROJECT_REF` - Your Supabase project reference
 
-Die kombinierte Konfiguration startet zwei Dienste:
-- `supabase-mcp`: Standard MCP Server
-- `supabase-mcp-sse`: MCP Server mit SSE-Unterstützung auf einer separaten Subdomain 
+Optional:
+- `MCP_PORT` - Server port (default: 3333)
+- `MCP_API_KEYS` - Comma-separated API keys for authentication
+- `MCP_RATE_LIMIT_REQUESTS` - Max requests per 15 minutes
+- `MCP_RATE_LIMIT_GENERAL` - Max requests per minute
+- `MCP_ALLOWED_ORIGINS` - CORS allowed origins
+- `DOMAIN` - Your domain (required for Coolify deployment)
+
+See `env.example` in the root directory for a complete list. 

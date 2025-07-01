@@ -9,6 +9,12 @@ const helmet = require('helmet');
 const app = express();
 const port = process.env.MCP_PORT || 3333;
 
+// Configure Express trust proxy for ngrok/proxy environments
+if (process.env.EXPRESS_TRUST_PROXY === '1' || process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1);
+    console.log('✅ Express trust proxy enabled for production/proxy environment');
+}
+
 // Security: Basic hardening against script kiddies
 app.use(helmet({
     contentSecurityPolicy: {
@@ -53,8 +59,8 @@ app.use('/mcp', mcpLimiter);
 
 // API Key Authentication (optional but recommended)
 function authenticateAPIKey(req, res, next) {
-    // Skip auth for health and status checks
-    if (req.path === '/health' || req.path === '/mcp/status') {
+    // Skip auth for health and status checks and landing page
+    if (req.path === '/health' || req.path === '/' || req.path === '/ping') {
         return next();
     }
     
@@ -355,18 +361,16 @@ app.get('/', (req, res) => {
         
         // 🔄 Multi-transport support
         transports: {
-            'streamable_http': '🚀 POST /mcp (recommended - Pipecat compatible)',
-            'server_sent_events': '🌊 POST /mcp with Accept: text/event-stream (n8n)',
-            'json_rpc_http': '📡 POST /mcp (standard JSON-RPC 2.0)'
+            'streamable_http': '🚀 POST /mcp (MCP Streamable HTTP Transport)',
+            'server_sent_events': '🌊 GET/POST /sse (n8n compatible)'
         },
         
         // 📍 Available endpoints
         endpoints: {
             'api_dashboard': '📖 GET / (this page)',
             'health_check': '❤️ GET /health',
-            'mcp_status': '📊 GET /mcp/status', 
-            'mcp_api': '🔌 POST /mcp',
-            'tools_legacy': '🛠️ POST /tools (legacy)'
+            'mcp_api': '🔌 POST /mcp (Streamable HTTP)',
+            'sse_api': '🌊 GET/POST /sse'
         },
         
         // 🔒 Security dashboard
@@ -400,11 +404,28 @@ app.get('/', (req, res) => {
                     : { 'Content-Type': 'application/json' },
                 body: { jsonrpc: '2.0', id: 1, method: 'tools/list' }
             },
+            'streamable_http_session': {
+                method: 'POST',
+                url: '/mcp',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'MCP-Session-ID': 'your-session-id' // Optional, server will create one if not provided
+                },
+                body: { jsonrpc: '2.0', id: 1, method: 'tools/list' },
+                description: 'Server responds with MCP-Session-ID header for session tracking'
+            },
             'health_check': {
                 method: 'GET', 
                 url: '/health',
                 auth_required: false,
                 expected_response: { status: 'ok', mcpReady: true }
+            },
+            'sse_connection': {
+                method: 'GET',
+                url: '/sse',
+                headers: { 'Accept': 'text/event-stream', 'Cache-Control': 'no-cache' },
+                auth_required: hasApiKeys,
+                description: 'Establishes SSE connection for n8n integration'
             }
         },
         
@@ -445,75 +466,37 @@ app.get('/ping', (req, res) => {
     res.status(200).send('pong');
 });
 
-// Debug endpoint for troubleshooting
-app.get('/debug', (req, res) => {
-    res.json({
-        server: {
-            port: port,
-            uptime: process.uptime(),
-            memory: process.memoryUsage(),
-            version: process.version
-        },
-        mcp: {
-            processRunning: !!mcpProcess,
-            processReady: mcpReady,
-            processKilled: mcpProcess?.killed || false
-        },
-        environment: {
-            NODE_ENV: process.env.NODE_ENV,
-            MCP_PORT: process.env.MCP_PORT,
-            hasSupabaseToken: !!process.env.SUPABASE_ACCESS_TOKEN,
-            hasProjectRef: !!process.env.SUPABASE_PROJECT_REF,
-            hasApiKeys: !!process.env.MCP_API_KEYS,
-            features: process.env.MCP_FEATURES
-        },
-        timestamp: new Date().toISOString()
-    });
-});
-
-// MCP Status endpoint for n8n discovery
-app.get('/mcp/status', (req, res) => {
-    res.json({
-        protocol: 'mcp',
-        version: '2024-11-05',
-        transports: ['streamable-http', 'sse'],
-        status: mcpReady ? 'ready' : 'starting',
-        capabilities: {
-            'tools': true,
-            'resources': true,
-            'prompts': true
-        }
-    });
-});
-
 // ✅ SSE Endpoint speziell für n8n MCP Client Tool Node
 app.get('/sse', async (req, res) => {
     console.log('🌊 SSE connection request from:', req.ip);
     
-    // SSE Headers
+    // N8n-compatible SSE Headers with additional specifications
     res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Connection': 'keep-alive',
+        'Pragma': 'no-cache',
+        'Expires': '0',
         'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cache-Control',
-        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, Cache-Control, X-API-Key, Accept, Last-Event-ID',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Expose-Headers': 'Content-Type, Cache-Control',
+        'X-Accel-Buffering': 'no', // Disable nginx buffering
+        'X-Content-Type-Options': 'nosniff'
     });
     
     const clientId = `sse-${sseClientId++}`;
     sseClients.set(clientId, res);
     
-    // Send initial connection event
+    // Send N8n-compatible initial event (simple format)
+    res.write(`event: endpoint\n`);
+    res.write(`data: /sse/messages?sessionId=${clientId}\n\n`);
+    
+    // Send simplified connection confirmation
     res.write(`data: ${JSON.stringify({
-        type: 'connection',
-        clientId: clientId,
-        message: 'Connected to Supabase MCP Server via SSE',
-        timestamp: new Date().toISOString(),
-        endpoints: {
-            'tools/list': 'List available MCP tools',
-            'tools/call': 'Execute MCP tool',
-            'ping': 'Health check'
-        }
+        type: 'ready',
+        status: 'connected',
+        session: clientId
     })}\n\n`);
     
     // Keep-alive ping every 30 seconds
@@ -585,67 +568,23 @@ app.post('/sse', async (req, res) => {
     }
 });
 
-// Main MCP endpoint - supports multiple transports
+// Main MCP endpoint - Streamable HTTP Transport
 app.post('/mcp', async (req, res) => {
-    const acceptHeader = req.headers.accept || '';
+    // Get or create session ID
     const sessionId = req.headers['mcp-session-id'] || `session-${sessionIdCounter++}`;
     
-    // Check if this is SSE request (n8n style)
-    if (acceptHeader.includes('text/event-stream')) {
-        // SSE Transport (for n8n)
-        res.writeHead(200, {
-            'Content-Type': 'text/event-stream',
-            'Cache-Control': 'no-cache',
-            'Connection': 'keep-alive',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Headers': 'Content-Type'
-        });
-        
-        const clientId = sseClientId++;
-        sseClients.set(sessionId, res);
-        
-        // Send connection confirmation
-        res.write(`data: ${JSON.stringify({
-            type: 'connection',
-            sessionId: sessionId,
-            message: 'Connected to MCP server'
-        })}\n\n`);
-        
-        // Handle SSE disconnection
-        req.on('close', () => {
-            sseClients.delete(sessionId);
-            console.log(`SSE client ${sessionId} disconnected`);
-        });
-        
-        // Process the request
-        try {
-            const response = await sendMCPRequest(req.body, sessionId);
-            // Response will be sent via handleMCPResponse
-        } catch (error) {
-            res.write(`data: ${JSON.stringify({
-                jsonrpc: "2.0",
-                id: req.body.id,
-                error: {
-                    code: -32603,
-                    message: error.message
-                }
-            })}\n\n`);
-        }
-        
-        return;
-    }
+    // Set response headers for Streamable HTTP
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('MCP-Session-ID', sessionId);
     
-    // Streamable HTTP Transport (for Pipecat and modern clients)
     try {
+        // Process the request
         const response = await sendMCPRequest(req.body);
         
-        res.setHeader('Content-Type', 'application/json');
-        if (sessionId) {
-            res.setHeader('Mcp-Session-Id', sessionId);
-        }
-        
+        // Send response
         res.json(response);
     } catch (error) {
+        // Send error response in JSON-RPC format
         res.status(500).json({
             jsonrpc: "2.0",
             id: req.body?.id || null,
@@ -684,11 +623,9 @@ startMCPServer();
 
 app.listen(port, () => {
     console.log(`✅ MCP HTTP Server running on port ${port}`);
-    console.log(`📡 Streamable HTTP: POST /mcp`);
-    console.log(`🌊 SSE (legacy): POST /mcp with Accept: text/event-stream`);
-    console.log(`📊 Status: GET /mcp/status`);
+    console.log(`🚀 Streamable HTTP: POST /mcp`);
+    console.log(`🌊 SSE: GET/POST /sse`);
     console.log(`❤️ Health: GET /health`);
-    console.log(`🔧 Debug: GET /debug`);
     console.log(`🏠 Landing: GET /`);
     console.log('');
     console.log('🔗 Ready for connections!');

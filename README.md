@@ -15,6 +15,8 @@ This is a **standalone, self-hostable Docker container** that wraps the official
 - **🔌 STDIO** - For desktop AI assistants (Cursor, Claude Desktop, Windsurf)
 - **⚡ Streamable HTTP** - Latest MCP 2025 standard (Pipecat Cloud)
 
+> **⚠️ SSE Transport Status:** The SSE transport for n8n integration is currently experiencing connection issues. While the implementation follows the MCP specification, n8n consistently drops connections after initialization. See [docs/n8n-sse-integration.md](docs/n8n-sse-integration.md) for details and debugging information. **Help and contributions are appreciated!** For now, please use the HTTP transport as an alternative.
+
 ### **🏗️ Deployment Benefits**
 - **🐳 One Docker container** - Deploy anywhere (Coolify, Railway, AWS, DigitalOcean)
 - **📦 Ready-to-use image** - Available on Docker Hub: `silverstar3o7/supabase-mcp-server`
@@ -1180,3 +1182,91 @@ Das Projekt ist jetzt besser organisiert:
   - `seed.sql` - Seed-Daten für die Datenbank
 
 Siehe die README-Dateien in den jeweiligen Verzeichnissen für weitere Informationen.
+
+# Supabase MCP Server
+
+Multi-transport Model Context Protocol (MCP) Server für Supabase.
+
+## Funktionen
+
+- Unterstützt mehrere Transportprotokolle:
+  - Streamable HTTP (MCP-Spezifikation)
+  - Server-Sent Events (SSE) für n8n-Integration
+- Authentifizierung über API-Schlüssel
+- Rate-Limiting zum Schutz vor Missbrauch
+- Docker-Integration für einfache Bereitstellung
+
+## Schnellstart
+
+### Lokale Entwicklung
+
+```bash
+# Installiere Abhängigkeiten
+npm install
+
+# Starte den Server
+node mcp-http-server.js
+```
+
+### n8n-Integration mit ngrok
+
+Für die Integration mit n8n können Sie das Quickstart-Skript verwenden, das den Server lokal startet und über ngrok bereitstellt:
+
+```bash
+# Installiere ngrok (falls noch nicht geschehen)
+npm install -g ngrok
+
+# Starte den Server mit ngrok-Tunnel
+node tests/quickstart.js
+```
+
+Das Skript führt Sie durch die Einrichtung und zeigt Anweisungen zur Konfiguration des MCP-Nodes in n8n.
+
+### Docker
+
+```bash
+# Standard-Konfiguration
+docker-compose -f docker/docker-compose.yaml up -d
+
+# Coolify-Konfiguration
+docker-compose -f docker/docker-compose.coolify.yaml up -d
+```
+
+## Konfiguration
+
+Die folgenden Umgebungsvariablen können konfiguriert werden:
+
+- `SUPABASE_ACCESS_TOKEN` - Supabase Access Token
+- `SUPABASE_PROJECT_REF` - Supabase Projekt-ID
+- `MCP_PORT` - Port für den MCP-Server (Standard: 3333)
+- `MCP_READ_ONLY` - Schreibgeschützter Modus (true/false)
+- `MCP_API_KEYS` - Kommagetrennte Liste von API-Schlüsseln für die Authentifizierung
+- `NODE_OPTIONS` - Für SSE wird `--experimental-global-webcrypto` benötigt
+- `EXPRESS_TRUST_PROXY` - Für SSE empfohlen: 1
+
+## Endpunkte
+
+- `/` - Landingpage mit Statusinformationen
+- `/health` - Gesundheitscheck für Load Balancer
+- `/mcp` - Hauptendpunkt für MCP-Anfragen (Streamable HTTP)
+- `/sse` - Server-Sent Events Endpunkt für n8n-Integration
+
+## Tests
+
+```bash
+# Führe alle Tests aus
+npm test
+
+# Führe nur SSE-Tests aus
+node tests/test-sse-local.js
+```
+
+## Docker-Verzeichnis
+
+Das `docker/`-Verzeichnis enthält verschiedene Docker-Konfigurationen:
+
+- `docker/Dockerfile` - Haupt-Dockerfile
+- `docker/docker-compose.yaml` - Standard-Konfiguration
+- `docker/docker-compose.coolify.yaml` - Konfiguration für Coolify
+
+Weitere Informationen finden Sie in [docker/README.md](docker/README.md).

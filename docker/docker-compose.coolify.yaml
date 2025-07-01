@@ -1,5 +1,3 @@
-
-
 networks:
   coolify:
     external: true
@@ -25,7 +23,7 @@ services:
       - SUPABASE_ACCESS_TOKEN=${SUPABASE_ACCESS_TOKEN}
       - SUPABASE_PROJECT_REF=${SUPABASE_PROJECT_REF}
       # Optional: Feature groups to enable
-      - MCP_FEATURES=${MCP_FEATURES:-database,docs,development,functions}
+      - MCP_FEATURES=${MCP_FEATURES:-database,docs,development,functions,account,debug,branching,storage}
       # Optional: Read-only mode (true/false)
       - MCP_READ_ONLY=${MCP_READ_ONLY:-true}
       # Optional: Port for HTTP server
@@ -41,10 +39,13 @@ services:
       - MCP_ALLOWED_ORIGINS=${MCP_ALLOWED_ORIGINS:-*}
       # Logging: Reduce verbose connection logs
       - NODE_LOG_LEVEL=${NODE_LOG_LEVEL:-warn}
-    # Use HTTP server instead of STDIO
-    command: ["npm", "start"]
+      # Enable experimental webcrypto for SSE
+      - NODE_OPTIONS=--experimental-global-webcrypto
+      - EXPRESS_TRUST_PROXY=1
+    # Start HTTP server with SSE support
+    command: ["node", "mcp-http-server.js"]
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3333/health || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3333/health && wget -qO- http://127.0.0.1:3333/sse || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 2

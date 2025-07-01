@@ -1,5 +1,7 @@
 {
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "start": "node mcp-http-server.js",
     "start:stdio": "node packages/mcp-server-supabase/dist/transports/stdio.js",
@@ -12,17 +14,18 @@
     "lint": "npm run format:check"
   },
   "dependencies": {
-    "express": "^4.18.2",
+    "chalk": "^5.4.1",
     "cors": "^2.8.5",
-    "helmet": "^7.1.0",
-    "express-rate-limit": "^7.1.5"
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
+    "@types/supertest": "^6.0.2",
+    "@vitest/coverage-v8": "^2.1.0",
     "supabase": "^2.1.1",
     "supertest": "^7.0.0",
-    "@types/supertest": "^6.0.2",
-    "vitest": "^2.1.0",
-    "@vitest/coverage-v8": "^2.1.0"
+    "vitest": "^2.1.0"
   }
 }
