@@ -111,7 +111,7 @@ function testToolsList() {
           console.log('   2. Copy docker/Dockerfile.sse to your Coolify project');
           console.log('   3. Update your Coolify service configuration');
           console.log('   4. Restart the service in Coolify');
-          console.log('   5. Test: https://sb-mcp.bifrotek.com/sse');
+          console.log('   5. Test: wget -qO- --header="Accept: text/event-stream" --header="Cache-Control: no-cache" https://your-domain.com/sse');
           
           process.exit(0);
         }, 2000);

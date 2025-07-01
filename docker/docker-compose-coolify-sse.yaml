@@ -45,7 +45,7 @@ services:
     # Start HTTP server with SSE support
     command: ["node", "mcp-http-server.js"]
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://127.0.0.1:3333/health && curl -f http://127.0.0.1:3333/sse || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3333/health && wget -qO- http://127.0.0.1:3333/sse || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 2

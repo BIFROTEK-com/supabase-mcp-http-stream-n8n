@@ -448,17 +448,29 @@ Your Supabase MCP Server is now ready for production use! 🎉
 
 ## Deployment mit SSE-Unterstützung für n8n
 
-Für die Integration mit n8n benötigen Sie die SSE-Unterstützung. Verwenden Sie die folgenden Dateien:
+Für die Integration mit n8n benötigen Sie die SSE-Unterstützung. Sie haben drei Möglichkeiten:
+
+### Option 1: Nur SSE-Server
 
 - `docker/Dockerfile.sse` - Dockerfile mit SSE-Unterstützung
 - `docker/docker-compose-coolify-sse.yaml` - Docker Compose Konfiguration für Coolify mit SSE-Unterstützung
+
+### Option 2: Kombinierter Server (Standard + SSE)
+
+- `docker/Dockerfile.sse` - Dockerfile mit SSE-Unterstützung
+- `docker/docker-compose.coolify-combined.yaml` - Kombinierte Docker Compose Konfiguration für Coolify mit Standard- und SSE-Instanz
 
 ### Schritte für das Deployment:
 
 1. Kopieren Sie die Dateien in Ihr Coolify-Projekt:
    ```bash
-   cp docker/Dockerfile.sse /path/to/coolify/project/
+   # Für Option 1: Nur SSE
+   cp docker/Dockerfile.sse /path/to/coolify/project/Dockerfile
    cp docker/docker-compose-coolify-sse.yaml /path/to/coolify/project/docker-compose.yaml
+   
+   # ODER für Option 2: Kombiniert
+   cp docker/Dockerfile.sse /path/to/coolify/project/Dockerfile
+   cp docker/docker-compose.coolify-combined.yaml /path/to/coolify/project/docker-compose.yaml
    ```
 
 2. Konfigurieren Sie die Umgebungsvariablen in Coolify:
@@ -468,10 +480,12 @@ Für die Integration mit n8n benötigen Sie die SSE-Unterstützung. Verwenden Si
    - `MCP_READ_ONLY` - Schreibgeschützter Modus (true/false)
    - `MCP_API_KEYS` - API-Schlüssel für die Authentifizierung
    - `MCP_ALLOWED_ORIGINS` - Erlaubte Ursprünge für CORS
+   - `DOMAIN` - Ihre Hauptdomain
+   - `SSE_DOMAIN` - (Nur für Option 2) Domain für den SSE-Server (Standard: sse.${DOMAIN})
 
 3. Starten Sie den Dienst in Coolify
 
 4. Testen Sie die SSE-Verbindung:
    ```bash
-   curl -N -H "Accept: text/event-stream" -H "Cache-Control: no-cache" https://your-domain.com/sse
+   wget -qO- --header="Accept: text/event-stream" --header="Cache-Control: no-cache" https://your-domain.com/sse
    ``` 

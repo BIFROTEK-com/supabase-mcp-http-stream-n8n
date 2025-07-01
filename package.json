@@ -3,12 +3,10 @@
   "scripts": {
     "start": "node mcp-http-server.js",
     "start:stdio": "node packages/mcp-server-supabase/dist/transports/stdio.js",
-    "build": "npm run build --workspace @supabase/mcp-utils --workspace @supabase/mcp-server-supabase",
-    "test": "npm run test --workspace @supabase/mcp-utils --workspace @supabase/mcp-server-supabase",
-    "test:coverage": "npm run test:coverage --workspace @supabase/mcp-server-supabase",
-    "test:http": "vitest run",
-    "test:http:watch": "vitest",
-    "test:http:coverage": "vitest run --coverage",
+    "build": "npm run build -w packages/mcp-server-supabase && npm run build -w packages/mcp-utils",
+    "test": "vitest run --config tests/vitest.config.js",
+    "test:watch": "vitest --config tests/vitest.config.js",
+    "test:coverage": "vitest run --coverage --config tests/vitest.config.js",
     "format": "biome check --write .",
     "format:check": "biome check .",
     "lint": "npm run format:check"

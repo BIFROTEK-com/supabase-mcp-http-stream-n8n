@@ -1151,9 +1151,32 @@ Der Supabase MCP Server unterstützt jetzt Server-Sent Events (SSE) für die Int
 Das Projekt ist jetzt besser organisiert:
 
 - `config/` - Konfigurationsdateien und Beispiele
+  - `n8n-final-config.json` - Konfiguration für n8n MCP Integration
+  - `n8n-sse-config.json` - Konfiguration für n8n mit SSE-Unterstützung
+  - `server-config-example.env` - Beispiel für Umgebungsvariablen
+  - `sse-example.json` - Beispiel-JSON für SSE-Anfragen
+
 - `docker/` - Docker-Konfigurationen für verschiedene Einsatzszenarien
+  - `Dockerfile` - Standard Docker-Konfiguration
+  - `Dockerfile.sse` - Docker-Konfiguration mit SSE-Unterstützung
+  - `Dockerfile.standard` - Alternative Standard-Konfiguration
+  - `docker-compose.simple.yaml` - Einfache Docker-Compose-Konfiguration
+  - `docker-compose.coolify.yaml` - Docker-Compose für Coolify
+  - `docker-compose-coolify-sse.yaml` - Docker-Compose für Coolify mit SSE
+  - `docker-compose.coolify-combined.yaml` - Kombinierte Konfiguration mit Standard- und SSE-Instanz
+
 - `packages/` - Quellcode der MCP-Pakete
+  - `mcp-server-supabase/` - Supabase MCP Server
+  - `mcp-utils/` - Hilfsfunktionen
+
 - `tests/` - Testskripte und -utilities
+  - `test-sse-local.js` - Test für SSE-Funktionalität
+  - `mcp-http-server.test.js` - Tests für den HTTP-Server
+  - `vitest.config.js` - Vitest-Konfiguration
+  - `TESTING.md` - Dokumentation zur Testausführung
+
 - `supabase/` - Supabase-spezifische Dateien
+  - `migrations/` - Datenbankmigrationen
+  - `seed.sql` - Seed-Daten für die Datenbank
 
 Siehe die README-Dateien in den jeweiligen Verzeichnissen für weitere Informationen.
