@@ -27,8 +27,12 @@ FROM node:18-alpine AS production
 # Set working directory
 WORKDIR /app
 
-# Install dependencies for native modules
-RUN apk add --no-cache python3 make g++
+# Install dependencies for native modules and wget for healthcheck
+RUN apk add --no-cache python3 make g++ wget
+
+# Create non-root user for security BEFORE copying files
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S mcp -u 1001 -G nodejs
 
 # Copy package files
 COPY package*.json ./
@@ -46,21 +50,22 @@ COPY --from=builder /app/packages/mcp-utils/dist ./packages/mcp-utils/dist
 COPY mcp-http-server.js ./
 COPY env.example ./
 
-# Expose port for health checks and HTTP server
-EXPOSE 3000 3333
+# Fix ownership for non-root user
+RUN chown -R mcp:nodejs /app
+
+# Expose ONLY the correct port
+EXPOSE 3333
 
 # Set default environment variables
 ENV NODE_ENV=production
 ENV MCP_PORT=3333
 
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S mcp -u 1001
+# Switch to non-root user
 USER mcp
 
-# Health check endpoint - simpler version
+# Health check endpoint - using wget as specified in docker-compose
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:' + (process.env.MCP_PORT || 3333) + '/ping', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))" || exit 1
+  CMD wget --quiet --tries=1 --spider http://localhost:${MCP_PORT:-3333}/health || exit 1
 
 # Default command - HTTP server for multi-transport support
 CMD ["node", "mcp-http-server.js"] 
