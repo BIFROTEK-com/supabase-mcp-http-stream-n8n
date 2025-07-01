@@ -1,6 +1,6 @@
 services:
   supabase-mcp:
-    image: silverstar3o7/supabase-mcp-server:latest
+    image: silverstar3o7/supabase-mcp-http-stream-n8n:latest
     container_name: supabase-mcp-server
     restart: unless-stopped
     ports:

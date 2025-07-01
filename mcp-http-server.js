@@ -514,12 +514,12 @@ app.get('/sse', async (req, res) => {
         'X-Content-Type-Options': 'nosniff'
     });
     
-    const clientId = `sse-${sseClientId++}`;
+    const clientId = generateSecureSessionId();
     sseClients.set(clientId, res);
     
     // Send N8n-compatible initial event (simple format)
     res.write(`event: endpoint\n`);
-    res.write(`data: /sse/messages?sessionId=${clientId}\n\n`);
+    res.write(`data: /messages?sessionId=${clientId}\n\n`);
     
     // Send simplified connection confirmation
     res.write(`data: ${JSON.stringify({
@@ -528,7 +528,7 @@ app.get('/sse', async (req, res) => {
         session: clientId
     })}\n\n`);
     
-    // Keep-alive ping every 30 seconds
+    // Keep-alive ping every 15 seconds
     const keepAlive = setInterval(() => {
         try {
             res.write(`data: ${JSON.stringify({
@@ -539,7 +539,7 @@ app.get('/sse', async (req, res) => {
             clearInterval(keepAlive);
             sseClients.delete(clientId);
         }
-    }, 30000);
+    }, 15000);
     
     // Handle client disconnect
     req.on('close', () => {
@@ -554,7 +554,7 @@ app.get('/sse', async (req, res) => {
     });
 });
 
-// ✅ SSE Message endpoint für n8n POST-Requests
+// ✅ SSE Message endpoint für n8n POST-Requests (Improved with session support)
 app.post('/sse', async (req, res) => {
     console.log('🌊 SSE POST request from:', req.ip, 'Body:', req.body);
     
@@ -594,6 +594,112 @@ app.post('/sse', async (req, res) => {
         });
         
         res.status(500).json(errorResponse);
+    }
+});
+
+// ✅ Enhanced SSE Messages endpoint with sessionId support (n8n compatibility)
+app.post('/messages', async (req, res) => {
+    const sessionId = req.query.sessionId;
+    
+    if (!sessionId || !sseClients.has(sessionId)) {
+        return res.status(400).json({
+            jsonrpc: '2.0',
+            id: req.body?.id || null,
+            error: {
+                code: -32000,
+                message: 'Invalid or missing session ID'
+            }
+        });
+    }
+    
+    console.log('📤 SSE Message received for session:', sessionId, req.body);
+    
+    try {
+        const { jsonrpc, id, method, params } = req.body;
+        
+        if (jsonrpc !== '2.0') {
+            throw new Error('Invalid JSON-RPC version');
+        }
+        
+        let result;
+        
+        switch (method) {
+            case 'initialize':
+                result = {
+                    protocolVersion: '2024-11-05',
+                    capabilities: {
+                        tools: true,
+                        resources: false,
+                        prompts: false
+                    },
+                    serverInfo: {
+                        name: 'supabase-mcp-http-server',
+                        version: '1.0.0'
+                    }
+                };
+                break;
+                
+            case 'tools/list':
+                const response = await sendMCPRequest(req.body, sessionId);
+                result = response.result;
+                break;
+                
+            case 'tools/call':
+                if (!params?.name || !params?.arguments) {
+                    throw new Error('Missing tool name or arguments');
+                }
+                const callResponse = await sendMCPRequest(req.body, sessionId);
+                result = callResponse.result;
+                break;
+                
+            case 'ping':
+                result = { message: 'pong', timestamp: new Date().toISOString() };
+                break;
+                
+            default:
+                // Forward unknown methods to MCP backend
+                const forwardResponse = await sendMCPRequest(req.body, sessionId);
+                result = forwardResponse.result;
+        }
+        
+        const response = {
+            jsonrpc: '2.0',
+            id,
+            result
+        };
+        
+        // Send response via HTTP (n8n expects this!)
+        res.json(response);
+        
+        // Also send via SSE to the connected client
+        const client = sseClients.get(sessionId);
+        if (client && !client.writableEnded) {
+            client.write(`data: ${JSON.stringify(response)}\n\n`);
+        }
+        
+    } catch (error) {
+        console.error('❌ SSE Message error:', error);
+        const errorResponse = {
+            jsonrpc: '2.0',
+            id: req.body?.id || null,
+            error: {
+                code: -32000,
+                message: error instanceof Error ? error.message : 'Unknown error',
+                data: {
+                    method: req.body?.method,
+                    sessionId,
+                    connectionActive: sseClients.has(sessionId)
+                }
+            }
+        };
+        
+        res.status(500).json(errorResponse);
+        
+        // Also send error via SSE
+        const client = sseClients.get(sessionId);
+        if (client && !client.writableEnded) {
+            client.write(`data: ${JSON.stringify(errorResponse)}\n\n`);
+        }
     }
 });
 
