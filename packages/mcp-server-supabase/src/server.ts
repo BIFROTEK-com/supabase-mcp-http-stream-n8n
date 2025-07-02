@@ -101,7 +101,7 @@ export function createSupabaseMcpServer(options: SupabaseMcpServerOptions) {
   const server = createMcpServer({
     name: 'supabase',
     version,
-    async onInitialize(info) {
+    async onInitialize(info: any) {
       // Note: in stateless HTTP mode, `onInitialize` will not always be called
       // so we cannot rely on it for initialization. It's still useful for telemetry.
       await platform.init?.(info);
