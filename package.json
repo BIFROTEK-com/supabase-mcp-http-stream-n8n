@@ -13,7 +13,7 @@
   "scripts": {
     "start": "node mcp-http-server.js",
     "start:stdio": "node packages/mcp-server-supabase/dist/transports/stdio.js",
-    "build": "npm run build -w packages/mcp-server-supabase && npm run build -w packages/mcp-utils",
+    "build": "npm run build -w packages/mcp-utils && npm run build -w packages/mcp-server-supabase",
     "test": "vitest run --config tests/vitest.config.js",
     "test:watch": "vitest --config tests/vitest.config.js",
     "test:coverage": "vitest run --coverage --config tests/vitest.config.js",
