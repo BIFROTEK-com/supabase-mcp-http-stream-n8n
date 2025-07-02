@@ -1,3 +1,5 @@
+![BIFROTEK Farm Pixel Header](assets/farm_pixel_5x1.png)
+
 # 🐳 Supabase MCP HTTP Stream Server for n8n
 
 > **One-Click Docker deployment** of Supabase MCP Server with native **HTTP Stream Transport** support for n8n, AI Agents, and modern automation workflows.
