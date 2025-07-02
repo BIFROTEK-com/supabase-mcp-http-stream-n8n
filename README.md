@@ -42,7 +42,7 @@ SUPABASE_PROJECT_REF=your_project_ref_here
 MCP_API_KEYS=your-secure-api-key-here
 
 # 📍 Domain Configuration
-DOMAIN=sb-mcp.bifrotek.com
+DOMAIN=your.domain.com
 
 # ⚙️ Optional: Feature Configuration  
 MCP_FEATURES=database,docs,development,functions
@@ -60,7 +60,7 @@ NODE_LOG_LEVEL=warn
 #### Step 4: Configure Domain & Traefik
 
 1. **Resource Name**: `supabase-mcp` (or your preferred name)
-2. **Domain Configuration**: `https://sb-mcp.bifrotek.com:3333`
+2. **Domain Configuration**: `https://your.domain.com:3333`
    - ✅ **Format**: `https://your-domain.com:3333`
    - ✅ **Port**: Must be `3333` (the container port)
    - ✅ **Protocol**: Use `https` for SSL termination via Traefik
