@@ -25,7 +25,7 @@ For production deployment on [Coolify](https://coolify.io), follow these detaile
 
 **Option A: From GIT Repository**
 - Repository: `https://github.com/BIFROTEK-com/supabase-mcp-http-stream-n8n.git`
-- Branch: `main` or `feature/sse-support`
+- Branch: `main`
 - Docker Compose Location: `docker/docker-compose.coolify.yaml`
 
 **Option B: Raw Docker Compose**
