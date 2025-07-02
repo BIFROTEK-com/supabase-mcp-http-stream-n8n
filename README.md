@@ -226,7 +226,7 @@ Enable specific features by setting `MCP_FEATURES`:
 
 ### ⚠️ Important: Built-in MCP Node Issues
 
-The **built-in n8n MCP Client node has known issues** with HTTP Stream Transport and may not work reliably with this server. For the best experience, we **strongly recommend** using the community-developed MCP Client node instead.
+The **built-in n8n MCP Client node has known issues** with SSE Stream Transport (Deprecated) and may not work reliably with this server. For the best experience, we **strongly recommend** using the community-developed MCP Client node instead.
 
 ### 🌟 Recommended: Community MCP Node
 
