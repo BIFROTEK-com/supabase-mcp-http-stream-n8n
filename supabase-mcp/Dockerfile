@@ -22,11 +22,11 @@ COPY . .
 RUN npm run build
 
 # Expose port for health checks (optional)
-EXPOSE 3000
+EXPOSE 3333
 
 # Set default environment variables (can be overridden)
 ENV NODE_ENV=production
-ENV MCP_PORT=3000
+ENV MCP_PORT=3333
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs
