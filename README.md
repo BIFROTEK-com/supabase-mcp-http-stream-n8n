@@ -1,4 +1,4 @@
-![BIFROTEK Farm Pixel Header](assets/farm_pixel_5x1.png)
+![BIFROTEK Header Animation](assets/header-animation.gif)
 
 # 🐳 Supabase MCP HTTP Stream Server for n8n
 
