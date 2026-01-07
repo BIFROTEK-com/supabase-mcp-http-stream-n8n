@@ -37,7 +37,7 @@
   },
   "dependencies": {
     "@mjackson/multipart-parser": "^0.10.1",
-    "@modelcontextprotocol/sdk": "^1.11.0",
+    "@modelcontextprotocol/sdk": "^1.25.2",
     "@supabase/mcp-utils": "0.2.1",
     "common-tags": "^1.8.2",
     "graphql": "^16.11.0",
