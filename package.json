@@ -32,7 +32,7 @@
     "@biomejs/biome": "1.9.4",
     "@types/supertest": "^6.0.2",
     "@vitest/coverage-v8": "^2.1.0",
-    "supabase": "^2.1.1",
+    "supabase": "^2.72.8",
     "supertest": "^7.0.0",
     "vitest": "^2.1.0"
   }
